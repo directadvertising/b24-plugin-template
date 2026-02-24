@@ -16,8 +16,7 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 │   └── contracts/        # @common/contracts — API contracts (Zod schemas, routes, types)
 ├── infrastructure/
 │   └── database/init.sql
-├── instructions/         # AI agent knowledge base (see below)
-└── docker-compose.yml
+└── instructions/         # AI agent knowledge base (see below)
 ```
 
 ## Tech Stack
@@ -25,51 +24,13 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 - **Backend:** NestJS — `apps/back-end/`
 - **Frontend:** Nuxt 4, Vue 3, Tailwind CSS 4, Pinia, `@bitrix24/b24ui-nuxt` — `apps/front-end/`
 - **Database:** PostgreSQL 17 (Alpine)
-- **Queue:** RabbitMQ 3.13 (optional, `ENABLE_RABBITMQ=1` in `.env`)
-- **Tunnel:** ngrok (for local dev exposure to Bitrix24)
-- **Containers:** Docker Compose with profiles
-
-## Docker Compose Profiles
-
-| Profile    | What it starts                |
-|------------|-------------------------------|
-| `frontend` | Nuxt dev server (port 3000)   |
-| `node`     | Node.js API (port 8000)       |
-| `ngrok`    | ngrok tunnel to frontend      |
-| `queue`    | RabbitMQ (ports 5672, 15672)  |
-
-Database service runs without a profile (always on).
-
-## Docker Commands
-
-```sh
-# Start all services (frontend + backend + ngrok)
-COMPOSE_PROFILES=frontend,node,ngrok docker compose up --build
-
-# Start frontend only
-COMPOSE_PROFILES=frontend,ngrok docker compose up --build
-
-# Stop all containers
-docker compose down --remove-orphans
-
-# View logs
-docker compose logs -f
-
-# Full cleanup (containers, networks, volumes)
-docker compose down --remove-orphans --volumes
-```
 
 ## Environment
 
 Configuration lives in `.env` (not committed). Key variables:
 
-- `VIRTUAL_HOST` — public URL (set by ngrok or your domain)
-- `NGROK_AUTHTOKEN` — ngrok auth token
 - `DB_NAME`, `DB_USER`, `DB_PASSWORD` — PostgreSQL credentials (defaults: appdb/appuser/apppass)
-- `RABBITMQ_USER`, `RABBITMQ_PASSWORD` — RabbitMQ credentials
-- `ENABLE_RABBITMQ` — set to `1` to include queue profile in dev commands
 - `NODE_ENV` — `development` or `production`
-- `BUILD_TARGET` — Docker build stage (`dev` or `production`)
 
 ## Instructions System (for AI agents)
 
@@ -189,10 +150,8 @@ export class MyFeatureController {
 ## Development Workflow
 
 1. Copy `.env.example` to `.env` and fill in credentials
-2. Start services: `COMPOSE_PROFILES=frontend,node,ngrok docker compose up --build`
-3. Access ngrok dashboard at `http://localhost:4040` to get the public URL
-4. Register the app in your Bitrix24 portal with the ngrok URL
-5. Monitor logs: `docker compose logs -f`
+2. Build and run with Docker
+3. Register the app in your Bitrix24 portal with the public URL
 
 ## Resources
 
