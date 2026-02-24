@@ -1,0 +1,9 @@
+{
+  "name": "@common/contracts",
+  "version": "0.0.1",
+  "private": true,
+  "main": "src/index.ts",
+  "dependencies": {
+    "contracts": "github:ivancerovina/contracts"
+  }
+}
