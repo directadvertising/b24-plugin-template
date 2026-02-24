@@ -1,0 +1,16 @@
+pre-commit:
+  parallel: true
+  commands:
+    "Lint":
+      glob: "*.{js,ts,tsx,md,css}"
+      run: pnpm -w lint --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+    "Syncpack":
+      run: pnpm -w syncpack:fix
+      glob: "**/package.json"
+      fail_text: "Syncpack automatic fix failed. Please run 'pnpm -w syncpack:check' to fix the issues manually."
+      stage_fixed: true
+commit-msg:
+  commands:
+    "Commit message":
+      run: npx commitlint --edit

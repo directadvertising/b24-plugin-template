@@ -6,7 +6,8 @@ onlyBuiltDependencies:
   - '@nestjs/core'
   - '@parcel/watcher'
   - contracts
-  - "contracts-nestjs"
+  - contracts-nestjs
   - esbuild
+  - lefthook
   - unrs-resolver
   - vue-demi
