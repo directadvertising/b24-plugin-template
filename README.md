@@ -8,13 +8,11 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 - **NestJS backend** with contract-based routing and validation
 - **Nuxt 4 frontend** with Bitrix24 UI Kit and JS SDK
 - **Shared API contracts** (Zod schemas, type-safe routes) in `packages/contracts/`
-- **PostgreSQL 17** database
-- **RabbitMQ** for async workloads (optional)
-- **Docker Compose** with profile-based service selection
-- **Ngrok** tunnel for local Bitrix24 development
-- **Makefile** with day-to-day commands
-- **Modular instructions** for AI agents in `instructions/`
+- **PostgreSQL 17** with Kysely query builder and migrations
+- **RabbitMQ** for async workloads
+- **MinIO** S3-compatible object storage
 - **Biome** for linting and formatting
+- **Modular instructions** for AI agents in `instructions/`
 
 ## Repository Layout
 
@@ -27,16 +25,13 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 │       └── nuxt.config.ts
 ├── packages/
 │   └── contracts/             # @common/contracts — Zod schemas, routes, types
-├── infrastructure/
-│   └── database/init.sql
 ├── instructions/              # AI agent knowledge base
 │   ├── knowledge.md           # start here
 │   ├── node/                  # NestJS backend guides
 │   ├── front/                 # Nuxt/B24UI guides
 │   ├── bitrix24/              # platform specifics
 │   └── queues/                # RabbitMQ recipes
-├── docker-compose.yml
-├── makefile
+├── docker-compose.yml         # Dev services: PostgreSQL, RabbitMQ, MinIO
 ├── pnpm-workspace.yaml
 └── biome.json
 ```
@@ -45,96 +40,54 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 
 | Layer          | Technology                                              |
 |----------------|---------------------------------------------------------|
-| **Backend**    | NestJS 11, TypeScript, `contracts-nestjs`               |
+| **Backend**    | NestJS 11, TypeScript, Kysely, `contracts-nestjs`       |
 | **Frontend**   | Nuxt 4, Vue 3, Tailwind CSS 4, Pinia, `@bitrix24/b24ui-nuxt` |
 | **Contracts**  | `@common/contracts` — Zod schemas shared across apps    |
-| **Database**   | PostgreSQL 17 (Alpine)                                  |
-| **Queue**      | RabbitMQ 3.13 (optional, `ENABLE_RABBITMQ=1`)          |
-| **Tunnel**     | ngrok                                                   |
+| **Database**   | PostgreSQL 17 (Alpine), Kysely query builder            |
+| **Queue**      | RabbitMQ 3.13                                           |
+| **Storage**    | MinIO (S3-compatible)                                   |
 | **Monorepo**   | pnpm workspaces                                         |
 | **Linter**     | Biome                                                   |
 
-## Docker Compose Profiles
+## Development Services (docker-compose.yml)
 
-| Profile    | What it starts                |
-|------------|-------------------------------|
-| `frontend` | Nuxt dev server (port 3000)   |
-| `node`     | NestJS API (port 8000)        |
-| `ngrok`    | ngrok tunnel to frontend      |
-| `queue`    | RabbitMQ (ports 5672, 15672)  |
+`docker compose up` starts three infrastructure services:
 
-The database service runs without a profile (always on).
+| Service    | Ports        | Purpose                            |
+|------------|--------------|-------------------------------------|
+| PostgreSQL | 5432         | Database (schema managed by Kysely) |
+| RabbitMQ   | 5672, 15672  | Message queue + management UI       |
+| MinIO      | 9000, 9001   | S3-compatible storage + console     |
 
-## Make Commands
-
-```sh
-make help              # list all commands
-
-# Development
-make dev-init          # interactive project setup (start here)
-make dev-node          # start frontend + NestJS backend + ngrok
-make dev-front         # start frontend only
-
-# Production
-make prod-node         # NestJS production build
-
-# Monitoring
-make status            # docker stats
-make ps                # watch docker ps
-make logs              # tail all container logs
-
-# Queues
-make queue-up          # start RabbitMQ only
-make queue-down        # stop RabbitMQ only
-
-# Cleanup
-make down              # stop all containers
-make clean             # full Docker cleanup (containers, networks, volumes)
-
-# Security
-make security-scan     # dependency vulnerability audit
-make security-tests    # orchestrated security test suite
-```
+The NestJS and Nuxt apps run on the host, not in containers.
 
 ## Quick Start
 
-1. Run `make dev-init`. The wizard configures `.env`, provisions an ngrok domain, and launches Docker.
-2. Open the ngrok domain in a browser — you should see an error saying the page must be opened inside Bitrix24. That confirms the app is running.
-3. Register the app in your Bitrix24 portal:
-   - **Main URL:** `[ngrok-domain]/`
-   - **Install URL:** `[ngrok-domain]/install`
+1. Copy `.env.example` to `.env` and fill in credentials.
+2. `docker compose up` — start PostgreSQL, RabbitMQ, MinIO.
+3. `pnpm --filter back-end run start:dev` — start the NestJS API.
+4. `pnpm --filter front-end run dev` — start the Nuxt dev server.
+5. Register the app in your Bitrix24 portal:
+   - **Main URL:** your public tunnel domain
+   - **Install URL:** `[domain]/install`
    - **Scopes:** `crm`, `user_brief`, `pull`, `placement`, `userfieldconfig`
-4. Put `CLIENT_ID` and `CLIENT_SECRET` from the portal into `.env`, then restart: `make down && make dev-node`.
-5. Reinstall the app inside your portal to refresh tokens.
-
-### Manual setup
-
-```bash
-cp .env.example .env
-make dev-node          # frontend + NestJS + ngrok
-make down              # stop everything
-```
-
-### Production checklist
-
-- `JWT_SECRET` — JWT encryption between frontend and backend
-- `DB_USER`, `DB_PASSWORD`, `DB_NAME` — PostgreSQL credentials
-- `BUILD_TARGET=production` — Nuxt production build
+6. Put `CLIENT_ID` and `CLIENT_SECRET` from the portal into `.env`, then restart the backend.
+7. Reinstall the app inside your portal to refresh tokens.
 
 ## Environment
 
 Configuration lives in `.env` (not committed). Key variables:
 
-| Variable           | Purpose                                  |
-|--------------------|------------------------------------------|
-| `VIRTUAL_HOST`     | Public URL (set by ngrok or your domain) |
-| `NGROK_AUTHTOKEN`  | ngrok auth token                         |
-| `CLIENT_ID`        | Bitrix24 app client ID                   |
-| `CLIENT_SECRET`    | Bitrix24 app client secret               |
-| `JWT_SECRET`       | JWT signing key                          |
-| `DB_NAME/USER/PASSWORD` | PostgreSQL credentials (default: appdb/appuser/apppass) |
-| `ENABLE_RABBITMQ`  | Set to `1` to include queue profile      |
-| `BUILD_TARGET`     | Docker build stage (`dev` or `production`) |
+| Variable                    | Purpose                                  |
+|-----------------------------|------------------------------------------|
+| `CLIENT_ID`                 | Bitrix24 app client ID                   |
+| `CLIENT_SECRET`             | Bitrix24 app client secret               |
+| `JWT_SECRET`                | JWT signing key                          |
+| `DB_HOST`, `DB_PORT`        | PostgreSQL host and port                 |
+| `DB_NAME`, `DB_USER`, `DB_PASSWORD` | PostgreSQL credentials            |
+| `RABBITMQ_USER`, `RABBITMQ_PASSWORD` | RabbitMQ credentials             |
+| `S3_ENDPOINT`, `S3_PORT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` | MinIO/S3 |
+| `NODE_ENV`                  | `development` or `production`            |
 
 ## Contracts (`packages/contracts/`)
 
@@ -226,9 +179,7 @@ If your feature involves widgets, events, or robots, review these docs first:
 
 ## Queues & RabbitMQ
 
-- Enable with `ENABLE_RABBITMQ=1` in `.env`
 - Broker: AMQP `5672`, management UI `15672`
-- Manual control: `make queue-up`, `make queue-down`
 - Guide: `instructions/queues/node.md`
 
 ## Instructions System (for AI agents)

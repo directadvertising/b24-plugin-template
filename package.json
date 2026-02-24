@@ -4,10 +4,10 @@
   "type": "module",
   "scripts": {},
   "devDependencies": {
-    "@biomejs/biome": "^2.4.4",
-    "@commitlint/cli": "^20.4.2",
-    "@commitlint/config-conventional": "^20.4.2",
-    "lefthook": "^2.1.1",
-    "syncpack": "^14.0.0"
+    "@biomejs/biome": "2.4.4",
+    "@commitlint/cli": "20.4.2",
+    "@commitlint/config-conventional": "20.4.2",
+    "lefthook": "2.1.1",
+    "syncpack": "14.0.0"
   }
 }

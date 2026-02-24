@@ -3,12 +3,12 @@ pre-commit:
   commands:
     "Lint":
       glob: "*.{js,ts,tsx,md,css}"
-      run: pnpm -w lint --no-errors-on-unmatched {staged_files}
+      run: pnpm biome check --write --no-errors-on-unmatched {staged_files}
       stage_fixed: true
     "Syncpack":
-      run: pnpm -w syncpack:fix
+      run: pnpm syncpack fix
       glob: "**/package.json"
-      fail_text: "Syncpack automatic fix failed. Please run 'pnpm -w syncpack:check' to fix the issues manually."
+      fail_text: "Syncpack automatic fix failed. Please run 'pnpm syncpack lint' to see the issues."
       stage_fixed: true
 commit-msg:
   commands:

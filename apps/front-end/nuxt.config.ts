@@ -1,13 +1,13 @@
-import tailwindcss from '@tailwindcss/vite'
-import { contentLocales } from './i18n/i18n.map'
+import tailwindcss from "@tailwindcss/vite";
+import { contentLocales } from "./i18n/i18n.map";
 
 export default defineNuxtConfig({
   modules: [
-    '@bitrix24/b24ui-nuxt',
-    '@bitrix24/b24jssdk-nuxt',
-    '@nuxt/eslint',
-    '@nuxtjs/i18n',
-    '@pinia/nuxt'
+    "@bitrix24/b24ui-nuxt",
+    "@bitrix24/b24jssdk-nuxt",
+    "@nuxt/eslint",
+    "@nuxtjs/i18n",
+    "@pinia/nuxt",
   ],
 
   ssr: false,
@@ -20,56 +20,58 @@ export default defineNuxtConfig({
      * @see https://nuxt.com/docs/guide/going-further/runtime-config#example
      */
     public: {
-      appUrl: '',
-      apiUrl: ''
-    }
+      appUrl: "",
+      apiUrl: "",
+    },
   },
 
   devServer: {
-    host: '0.0.0.0',
+    host: "0.0.0.0",
   },
 
-  compatibilityDate: '2025-07-16',
+  compatibilityDate: "2025-07-16",
 
   app: {
     head: {
-      title: 'Starter',
-      link: [
-        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
-      ],
+      title: "Starter",
+      link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }],
       meta: [
-        { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' }
+        { charset: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
       ],
-      htmlAttrs: { class: 'light' }
-    }
+      htmlAttrs: { class: "light" },
+    },
   },
 
-  css: ['~/assets/css/main.css'],
+  css: ["~/assets/css/main.css"],
 
   vite: {
-    plugins: [
-      tailwindcss()
-    ],
+    plugins: [tailwindcss()],
     server: {
       allowedHosts: true,
       proxy: {
-        '/api': { target: process.env.SERVER_HOST || 'http://localhost:8000', changeOrigin: true }
-      }
-    }
+        "/api": {
+          target: "https://roads-scotia-pixels-losses.trycloudflare.com",
+          changeOrigin: true,
+        },
+      },
+    },
   },
 
   nitro: {
     devProxy: {
-      '/api': { target: process.env.SERVER_HOST || 'http://localhost:8000', changeOrigin: true }
+      "/api": {
+        target: "https://roads-scotia-pixels-losses.trycloudflare.com",
+        changeOrigin: true,
+      },
     },
   },
 
   i18n: {
     detectBrowserLanguage: false,
-    strategy: 'no_prefix',
-    langDir: 'locales',
+    strategy: "no_prefix",
+    langDir: "locales",
     locales: contentLocales,
-    defaultLocale: 'en'
-  }
-})
+    defaultLocale: "en",
+  },
+});
