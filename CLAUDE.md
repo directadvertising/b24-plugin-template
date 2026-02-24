@@ -17,9 +17,7 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 ├── infrastructure/
 │   └── database/init.sql
 ├── instructions/         # AI agent knowledge base (see below)
-├── scripts/              # dev-init, create-version, security-scan, etc.
-├── docker-compose.yml
-└── makefile
+└── docker-compose.yml
 ```
 
 ## Tech Stack
@@ -42,25 +40,23 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 
 Database service runs without a profile (always on).
 
-## Key Make Commands
+## Docker Commands
 
 ```sh
-make help              # list all commands
-make dev-init          # interactive project setup (start here)
-make dev-node          # start frontend + Node.js backend + ngrok
-make dev-front         # start frontend only
+# Start all services (frontend + backend + ngrok)
+COMPOSE_PROFILES=frontend,node,ngrok docker compose up --build
 
-make down              # stop all containers
-make clean             # full Docker cleanup (containers, networks, volumes)
-make logs              # tail all container logs
-make status            # docker stats
-make ps                # watch docker ps
+# Start frontend only
+COMPOSE_PROFILES=frontend,ngrok docker compose up --build
 
-make security-scan     # dependency vulnerability audit
-make security-tests    # orchestrated security test suite
+# Stop all containers
+docker compose down --remove-orphans
 
-make create-version VERSION=<name>   # clone project into versions/<name>
-make delete-version VERSION=<name>   # remove a version
+# View logs
+docker compose logs -f
+
+# Full cleanup (containers, networks, volumes)
+docker compose down --remove-orphans --volumes
 ```
 
 ## Environment
@@ -90,8 +86,7 @@ instructions/
 ├── bitrix24/widget.md        # widget instructions
 ├── queues/server.md          # queue server setup
 ├── queues/node.md            # Node.js + amqplib recipes
-├── queues/prompt.md          # AI prompt for queue tasks
-└── versioning/               # version management prompt
+└── queues/prompt.md          # AI prompt for queue tasks
 ```
 
 **Reading workflow:** knowledge.md → stack-specific knowledge → specialized docs only as needed.
@@ -193,11 +188,11 @@ export class MyFeatureController {
 
 ## Development Workflow
 
-1. Run `make dev-init` for first-time setup
-2. Run `make dev-node` to start all services
+1. Copy `.env.example` to `.env` and fill in credentials
+2. Start services: `COMPOSE_PROFILES=frontend,node,ngrok docker compose up --build`
 3. Access ngrok dashboard at `http://localhost:4040` to get the public URL
 4. Register the app in your Bitrix24 portal with the ngrok URL
-5. Use `make logs` to monitor container output
+5. Monitor logs: `docker compose logs -f`
 
 ## Resources
 

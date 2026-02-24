@@ -13,9 +13,6 @@ node_modules
 # Logs
 *.log
 
-# Python compiled files
-*.pyc
-
 # Misc
 .DS_Store
 .fleet
@@ -28,8 +25,3 @@ node_modules
 !.env.example
 !.env.dev.example
 !.env.prod.example
-!backends/php/.env*
-
-# dev/build outputs
-backend/php/vendor
-
