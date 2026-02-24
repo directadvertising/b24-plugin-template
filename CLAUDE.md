@@ -18,6 +18,11 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 └── docker-compose.yml    # Dev services: PostgreSQL, RabbitMQ, MinIO
 ```
 
+## Commits
+
+- When commiting **always** follow commitlint conventional config
+- **NEVER** add Claude signatures to commits
+
 ## Tech Stack
 
 - **Backend:** NestJS, Kysely — `apps/back-end/`
@@ -30,11 +35,11 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 
 `docker compose up` starts three infrastructure services:
 
-| Service | Ports | Purpose |
-|---------|-------|---------|
-| PostgreSQL | 5432 | Database (schema managed by Kysely migrations) |
-| RabbitMQ | 5672, 15672 | Message queue + management UI |
-| MinIO | 9000, 9001 | S3-compatible storage + console |
+| Service    | Ports       | Purpose                                        |
+| ---------- | ----------- | ---------------------------------------------- |
+| PostgreSQL | 5432        | Database (schema managed by Kysely migrations) |
+| RabbitMQ   | 5672, 15672 | Message queue + management UI                  |
+| MinIO      | 9000, 9001  | S3-compatible storage + console                |
 
 The NestJS and Nuxt apps run on the host, not in containers.
 
@@ -59,9 +64,13 @@ Database access uses Kysely with the `pg` driver. The `DatabaseModule` (`apps/ba
 - **Migrations:** `migrations/` — Kysely migration files (e.g. `001_bitrix.ts`)
 
 Inject in any service:
+
 ```ts
 import { Injectable } from "@nestjs/common";
-import { InjectDatabase, type DatabaseConnection } from "../database/database.provider";
+import {
+  InjectDatabase,
+  type DatabaseConnection,
+} from "../database/database.provider";
 
 @Injectable()
 export class MyService {
@@ -134,17 +143,17 @@ export const $ = createContract({
 
 **Route properties:**
 
-| Property      | Type                | Required | Purpose                                         |
-|---------------|---------------------|----------|--------------------------------------------------|
-| `method`      | HTTP verb           | yes      | GET, POST, PUT, PATCH, DELETE                    |
-| `name`        | string              | yes      | Human-readable identifier                        |
-| `description` | string              | yes      | Detailed explanation                             |
-| `path`        | string              | yes      | URL pattern (`:param` placeholders)              |
-| `params`      | Zod object \| null  | if path has `:param` | URL parameter validation            |
-| `query`       | Zod schema \| null  | yes      | Query string validation                          |
-| `body`        | Zod schema \| null  | yes      | Request payload validation                       |
-| `data`        | Zod schema \| null  | yes      | Success response schema                          |
-| `errorCodes`  | string[]            | yes      | Custom error identifiers                         |
+| Property      | Type               | Required             | Purpose                             |
+| ------------- | ------------------ | -------------------- | ----------------------------------- |
+| `method`      | HTTP verb          | yes                  | GET, POST, PUT, PATCH, DELETE       |
+| `name`        | string             | yes                  | Human-readable identifier           |
+| `description` | string             | yes                  | Detailed explanation                |
+| `path`        | string             | yes                  | URL pattern (`:param` placeholders) |
+| `params`      | Zod object \| null | if path has `:param` | URL parameter validation            |
+| `query`       | Zod schema \| null | yes                  | Query string validation             |
+| `body`        | Zod schema \| null | yes                  | Request payload validation          |
+| `data`        | Zod schema \| null | yes                  | Success response schema             |
+| `errorCodes`  | string[]           | yes                  | Custom error identifiers            |
 
 **Path handling:** After creation, `path` becomes a callable function — `path()` for static paths, `path({ id: "123" })` for parameterized ones. Original template available via `pathTemplate`.
 
