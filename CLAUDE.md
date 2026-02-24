@@ -14,23 +14,60 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 │       └── nuxt.config.ts
 ├── packages/
 │   └── contracts/        # @common/contracts — API contracts (Zod schemas, routes, types)
-├── infrastructure/
-│   └── database/init.sql
-└── instructions/         # AI agent knowledge base (see below)
+├── instructions/         # AI agent knowledge base (see below)
+└── docker-compose.yml    # Dev services: PostgreSQL, RabbitMQ, MinIO
 ```
 
 ## Tech Stack
 
-- **Backend:** NestJS — `apps/back-end/`
+- **Backend:** NestJS, Kysely — `apps/back-end/`
 - **Frontend:** Nuxt 4, Vue 3, Tailwind CSS 4, Pinia, `@bitrix24/b24ui-nuxt` — `apps/front-end/`
-- **Database:** PostgreSQL 17 (Alpine)
+- **Database:** PostgreSQL 17 (Alpine), Kysely query builder
+- **Queue:** RabbitMQ 3.13
+- **Object Storage:** MinIO (S3-compatible)
+
+## Development Services (docker-compose.yml)
+
+`docker compose up` starts three infrastructure services:
+
+| Service | Ports | Purpose |
+|---------|-------|---------|
+| PostgreSQL | 5432 | Database (schema managed by Kysely migrations) |
+| RabbitMQ | 5672, 15672 | Message queue + management UI |
+| MinIO | 9000, 9001 | S3-compatible storage + console |
+
+The NestJS and Nuxt apps run on the host, not in containers.
 
 ## Environment
 
-Configuration lives in `.env` (not committed). Key variables:
+Configuration lives in `.env` (copy from `.env.example`). Key variables:
 
-- `DB_NAME`, `DB_USER`, `DB_PASSWORD` — PostgreSQL credentials (defaults: appdb/appuser/apppass)
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` — PostgreSQL
+- `RABBITMQ_USER`, `RABBITMQ_PASSWORD` — RabbitMQ
+- `S3_ENDPOINT`, `S3_PORT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` — MinIO/S3
+- `JWT_SECRET` — JWT signing key
+- `CLIENT_ID`, `CLIENT_SECRET` — Bitrix24 OAuth
 - `NODE_ENV` — `development` or `production`
+
+## Database (Kysely)
+
+Database access uses Kysely with the `pg` driver. The `DatabaseModule` (`apps/back-end/src/database/`) provides a typed `Kysely<Database>` instance via NestJS DI.
+
+- **Types:** `database.types.ts` — interfaces matching the database schema
+- **Provider:** `database.provider.ts` — factory creating Kysely with `pg.Pool` from env vars, exports `InjectDatabase()` decorator
+- **Module:** `database.module.ts` — exports `DATABASE_TOKEN`, handles pool shutdown
+- **Migrations:** `migrations/` — Kysely migration files (e.g. `001_bitrix.ts`)
+
+Inject in any service:
+```ts
+import { Injectable } from "@nestjs/common";
+import { InjectDatabase, type DatabaseConnection } from "../database/database.provider";
+
+@Injectable()
+export class MyService {
+  constructor(@InjectDatabase() private readonly db: DatabaseConnection) {}
+}
+```
 
 ## Instructions System (for AI agents)
 
@@ -150,8 +187,9 @@ export class MyFeatureController {
 ## Development Workflow
 
 1. Copy `.env.example` to `.env` and fill in credentials
-2. Build and run with Docker
-3. Register the app in your Bitrix24 portal with the public URL
+2. `docker compose up` — start PostgreSQL, RabbitMQ, MinIO
+3. `pnpm --filter back-end run start:dev` — start the NestJS API
+4. Register the app in your Bitrix24 portal with the public URL
 
 ## Resources
 
