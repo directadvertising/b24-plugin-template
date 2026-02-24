@@ -1,12 +1,9 @@
 {
-  "name": "@bitrix24/starter-kit",
+  "name": "core",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
-  "scripts": {
-  },
-  "dependencies": {
-  },
+  "scripts": {},
   "devDependencies": {
+    "@biomejs/biome": "^2.4.4"
   }
 }
