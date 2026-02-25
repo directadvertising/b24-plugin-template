@@ -6,7 +6,7 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 ## What You Get
 
 - **NestJS backend** with contract-based routing and validation
-- **Nuxt 4 frontend** with Bitrix24 UI Kit and JS SDK
+- **React 19 frontend** with Bitrix24 JS SDK and `@common/b24ui-react`
 - **Shared API contracts** (Zod schemas, type-safe routes) in `packages/contracts/`
 - **PostgreSQL 17** with Kysely query builder and migrations
 - **RabbitMQ** for async workloads
@@ -19,16 +19,16 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 ```
 ├── apps/
 │   ├── back-end/              # NestJS API (port 8000)
-│   └── front-end/             # Nuxt 4 + Vue 3 + Bitrix24 UI Kit
-│       ├── app/               # pages, components, composables, stores
-│       ├── i18n/              # localization (18+ languages)
-│       └── nuxt.config.ts
+│   └── front-end/             # React 19 + Vite SPA
+│       ├── src/                # pages, components, hooks, atoms
+│       └── vite.config.ts
 ├── packages/
-│   └── contracts/             # @common/contracts — Zod schemas, routes, types
+│   ├── contracts/             # @common/contracts — Zod schemas, routes, types
+│   └── b24ui-react/           # @common/b24ui-react — B24 React hooks, atoms, provider
 ├── instructions/              # AI agent knowledge base
 │   ├── knowledge.md           # start here
 │   ├── node/                  # NestJS backend guides
-│   ├── front/                 # Nuxt/B24UI guides
+│   ├── front/                 # React/Vite guides
 │   ├── bitrix24/              # platform specifics
 │   └── queues/                # RabbitMQ recipes
 ├── docker-compose.yml         # Dev services: PostgreSQL, RabbitMQ, MinIO
@@ -41,7 +41,7 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 | Layer          | Technology                                              |
 |----------------|---------------------------------------------------------|
 | **Backend**    | NestJS 11, TypeScript, Kysely, `contracts-nestjs`       |
-| **Frontend**   | Nuxt 4, Vue 3, Tailwind CSS 4, Pinia, `@bitrix24/b24ui-nuxt` |
+| **Frontend**   | React 19, Vite 8, Tailwind CSS 4, Jotai, `@common/b24ui-react` |
 | **Contracts**  | `@common/contracts` — Zod schemas shared across apps    |
 | **Database**   | PostgreSQL 17 (Alpine), Kysely query builder            |
 | **Queue**      | RabbitMQ 3.13                                           |
@@ -59,14 +59,14 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 | RabbitMQ   | 5672, 15672  | Message queue + management UI       |
 | MinIO      | 9000, 9001   | S3-compatible storage + console     |
 
-The NestJS and Nuxt apps run on the host, not in containers.
+The NestJS and React apps run on the host, not in containers.
 
 ## Quick Start
 
 1. Copy `.env.example` to `.env` and fill in credentials.
 2. `docker compose up` — start PostgreSQL, RabbitMQ, MinIO.
 3. `pnpm --filter back-end run start:dev` — start the NestJS API.
-4. `pnpm --filter front-end run dev` — start the Nuxt dev server.
+4. `pnpm --filter front-end run dev` — start the Vite dev server.
 5. Register the app in your Bitrix24 portal:
    - **Main URL:** your public tunnel domain
    - **Install URL:** `[domain]/install`
@@ -155,19 +155,17 @@ Authorization: Bearer <token>
 
 ### Key directories
 
-- `apps/front-end/app/pages/` — pages (`.client.vue` files, rendered in Bitrix24 iframe)
-- `apps/front-end/app/stores/` — Pinia stores
-- `apps/front-end/app/composables/` — shared logic
-- `apps/front-end/app/layouts/` — `default`, `placement`, `slider`, `uf-placement`
-- `apps/front-end/app/components/` — Vue components
+- `apps/front-end/src/pages/` — page components (`.tsx` files)
+- `apps/front-end/src/main.tsx` — app entry point with `B24Provider` and React Router
+- `apps/front-end/vite.config.ts` — Vite config with Tailwind CSS and API proxy
 
 ### Conventions
 
-- All pages are `.client.vue` (client-side only, Bitrix24 iframe)
-- Wrap everything in `<B24App>` for global providers
-- Components from `@bitrix24/b24ui-nuxt`, icons from `@bitrix24/b24icons-vue`
-- State management via Pinia stores
-- Tailwind CSS 4 via Vite plugin
+- Wrap the app in `<B24Provider>` (from `@common/b24ui-react`) for B24 frame init, JWT, and Jotai atoms
+- Routing via React Router (`react-router`)
+- Hooks from `@common/b24ui-react`: `useB24Init`, `useApiClient`, `useB24Frame`
+- State management via Jotai atoms (exported from `@common/b24ui-react`)
+- Tailwind CSS 4 via `@tailwindcss/vite` plugin
 
 ## Widgets, Events, Robots
 
@@ -191,8 +189,7 @@ instructions/
 ├── knowledge.md              # central hub — start here
 ├── node/knowledge.md         # NestJS backend patterns
 ├── node/code-review.md       # backend code review standards
-├── front/knowledge.md        # frontend (Nuxt/B24UI) guide
-├── front/*.md                # component-specific guides
+├── front/knowledge.md        # frontend (React/Vite) guide
 ├── bitrix24/crm-robot.md     # CRM robot instructions
 ├── bitrix24/widget.md        # widget instructions
 ├── queues/server.md          # queue server setup
@@ -206,9 +203,6 @@ instructions/
 
 - REST API docs: https://apidocs.bitrix24.com
 - JS SDK: https://github.com/bitrix24/b24jssdk
-- UI Kit docs: https://bitrix24.github.io/b24ui/
-- UI Kit AI README: https://github.com/bitrix24/b24ui/blob/main/README-AI.md
-- Icons: https://bitrix24.github.io/b24icons/
 
 ## License
 

@@ -63,12 +63,12 @@ The starter provides a Bitrix24 app skeleton that uses a simplified OAuth 2.0 in
 
 ### Frontend
 
-Use the patterns documented in [`frontend/knowledge.md`](frontend/knowledge.md) regardless of backend choice.
+Use the patterns documented in [`front/knowledge.md`](front/knowledge.md) regardless of backend choice.
 
 ## 🛡️ Manual Security Checks
 
 - Run `make security-scan` to execute `scripts/security-scan.sh`.
-- The script launches `composer audit --locked --format=json` (PHP backend) and `pnpm audit --prod --json` (Nuxt frontend) inside Docker containers.
+- The script launches `pnpm audit --prod --json` (React frontend) inside Docker containers.
 - Reports are stored under `reports/security/` for easy sharing (CI, issue trackers, etc.).
 - Non-zero exit on vulnerabilities; override via `SECURITY_SCAN_ALLOW_FAILURES=1 make security-scan` or `./scripts/security-scan.sh --allow-fail`.
 - The script never runs automatically — developers decide when to audit dependencies.

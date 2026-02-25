@@ -8,12 +8,12 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 ```
 ├── apps/
 │   ├── back-end/         # NestJS API (port 8000)
-│   └── front-end/        # Nuxt 4 + Vue 3 + Bitrix24 UI Kit
-│       ├── app/          # pages, components, composables, stores
-│       ├── i18n/         # localization
-│       └── nuxt.config.ts
+│   └── front-end/        # React 19 + Vite SPA
+│       ├── src/           # pages, components, hooks, atoms
+│       └── vite.config.ts
 ├── packages/
-│   └── contracts/        # @common/contracts — API contracts (Zod schemas, routes, types)
+│   ├── contracts/        # @common/contracts — API contracts (Zod schemas, routes, types)
+│   └── b24ui-react/      # @common/b24ui-react — B24 React hooks, atoms, provider
 ├── instructions/         # AI agent knowledge base (see below)
 └── docker-compose.yml    # Dev services: PostgreSQL, RabbitMQ, MinIO
 ```
@@ -23,10 +23,14 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 - When commiting **always** follow commitlint conventional config
 - **NEVER** add Claude signatures to commits
 
+## Dev Servers
+
+- **NEVER** run dev servers yourself (e.g. `pnpm dev`, `pnpm start:dev`, `vite`, `nest start`) — the user manages them manually
+
 ## Tech Stack
 
 - **Backend:** NestJS, Kysely — `apps/back-end/`
-- **Frontend:** Nuxt 4, Vue 3, Tailwind CSS 4, Pinia, `@bitrix24/b24ui-nuxt` — `apps/front-end/`
+- **Frontend:** React 19, Vite, Tailwind CSS 4, Jotai, `@common/b24ui-react` — `apps/front-end/`
 - **Database:** PostgreSQL 17 (Alpine), Kysely query builder
 - **Queue:** RabbitMQ 3.13
 - **Object Storage:** MinIO (S3-compatible)
@@ -41,7 +45,7 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 | RabbitMQ   | 5672, 15672 | Message queue + management UI                  |
 | MinIO      | 9000, 9001  | S3-compatible storage + console                |
 
-The NestJS and Nuxt apps run on the host, not in containers.
+The NestJS and React apps run on the host, not in containers.
 
 ## Environment
 
@@ -87,8 +91,7 @@ instructions/
 ├── knowledge.md              # central hub — start here
 ├── node/knowledge.md         # Node.js backend patterns
 ├── node/code-review.md       # Node.js code review standards
-├── front/knowledge.md        # frontend (Nuxt/B24UI) guide
-├── front/*.md                # component-specific guides
+├── front/knowledge.md        # frontend (React/Vite) guide
 ├── bitrix24/crm-robot.md     # CRM robot instructions
 ├── bitrix24/widget.md        # widget instructions
 ├── queues/server.md          # queue server setup
@@ -102,17 +105,16 @@ instructions/
 
 - **REST API** — single entry point to portal data; OAuth 2.0 auth; batch requests
 - **JS SDK** — `@bitrix24/b24jssdk` for client-side API calls and UI management
-- **UI Kit** — `@bitrix24/b24ui-nuxt`; all components are `B24*` prefixed
+- **UI Kit** — `@common/b24ui-react`; provides `B24Provider`, hooks, and Jotai atoms
 - **Core CRM entities:** Leads, Deals, Contacts, Companies, Activities
 
 ## Frontend Conventions
 
-- All pages are `.client.vue` (rendered in Bitrix24 iframe)
-- Wrap everything in `<B24App>` for global providers (toast, tooltip, overlay)
-- Components come from `@bitrix24/b24ui-nuxt`, not plain Nuxt UI
-- Icons from `@bitrix24/b24icons-vue`
-- State management via Pinia stores in `app/stores/`
-- Tailwind CSS 4 via Vite plugin
+- Wrap the app in `<B24Provider>` (from `@common/b24ui-react`) for B24 frame init, JWT, and Jotai atoms
+- Routing via React Router (`react-router`) — pages are `.tsx` components in `src/pages/`
+- Hooks from `@common/b24ui-react`: `useB24Init`, `useApiClient`, `useB24Frame`, `useB24FrameOrNull`
+- State management via Jotai atoms (exported from `@common/b24ui-react`)
+- Tailwind CSS 4 via `@tailwindcss/vite` plugin
 
 ## Contracts (`packages/contracts/`)
 
@@ -204,7 +206,3 @@ export class MyFeatureController {
 
 - REST API docs: https://apidocs.bitrix24.com
 - JS SDK: https://github.com/bitrix24/b24jssdk
-- UI Kit docs: https://bitrix24.github.io/b24ui/
-- UI Kit AI README: https://github.com/bitrix24/b24ui/blob/main/README-AI.md
-- Icons: https://bitrix24.github.io/b24icons/
-- Starter template: https://github.com/bitrix24/starter-b24ui

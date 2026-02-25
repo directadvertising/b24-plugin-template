@@ -11,11 +11,9 @@ UMD build:
 ```html
 <script src="https://unpkg.com/@bitrix24/b24jssdk@latest/dist/umd/index.min.js"></script>
 ```
-Nuxt module:
-```bash
-npx nuxi module add @bitrix24/b24jssdk-nuxt
-```
-Docs: [Node](https://github.com/bitrix24/b24jssdk/blob/main/docs/guide/getting-started.md) · [UMD](https://github.com/bitrix24/b24jssdk/blob/main/docs/guide/getting-started-umd.md) · [Nuxt](https://github.com/bitrix24/b24jssdk/blob/main/docs/guide/getting-started-nuxt.md). Sample projects: [node hook](https://github.com/bitrix24/b24sdk-examples/tree/main/js/05-node-hook), [nuxt frame](https://github.com/bitrix24/b24sdk-examples/tree/main/js/02-nuxt-hook), [nuxt oauth](https://github.com/bitrix24/b24sdk-examples/tree/main/js/08-nuxt-oauth).
+Docs: [Node](https://github.com/bitrix24/b24jssdk/blob/main/docs/guide/getting-started.md) · [UMD](https://github.com/bitrix24/b24jssdk/blob/main/docs/guide/getting-started-umd.md). Sample projects: [node hook](https://github.com/bitrix24/b24sdk-examples/tree/main/js/05-node-hook).
+
+In our React app, use `@common/b24ui-react` hooks (`useB24Init`, `useB24Frame`) instead of calling `initializeB24Frame()` directly — the provider handles initialization.
 
 ## Operating modes
 ### B24Frame — iframe apps inside Bitrix24

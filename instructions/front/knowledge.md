@@ -1,159 +1,156 @@
-# Bitrix24 UI Kit — guide for AI agents
+# React + Vite Frontend — guide for AI agents
 
 ## Quick overview
-**Bitrix24 UI Kit** (`@bitrix24/b24ui-nuxt`) is Nuxt + Vue UI middleware for REST-based Bitrix24 apps. The starter already wires Nuxt, Tailwind, Pinia, i18n, and the UI kit together; every new screen must keep that structure and reuse the provided components.
+`@common/b24ui-react` is the integration layer between the React SPA and the Bitrix24 platform. It provides a `B24Provider` component, Jotai atoms for shared state, and React hooks for B24 frame initialization, API calls, and user/app settings. The app uses plain Tailwind CSS for UI — there is no B24 component library for React.
 
-Project layout:
+## Project layout
 ```
-frontend/
-├── app/
-│   ├── app.config.ts          # B24UI config
-│   ├── app.vue                # root shell with B24App
-│   ├── assets/css/main.css    # Tailwind + kit styles
-│   ├── components/            # local widgets (Logo, BackendStatus, ...)
-│   ├── composables/           # shared logic
-│   ├── pages/                 # *.client.vue pages (index, install, handler, slider)
-│   └── stores/                # Pinia stores
-├── nuxt.config.ts
+apps/front-end/
+├── src/
+│   ├── main.tsx              # entry point: B24Provider + React Router
+│   ├── index.css             # Tailwind CSS imports
+│   ├── pages/                # page components (index.tsx, install.tsx, ...)
+│   └── env.d.ts              # Vite env types
+├── vite.config.ts            # Vite + Tailwind + API proxy
+├── index.html
 ├── package.json
-└── i18n/
-    ├── locales/
-    └── i18n.map.ts
+└── tsconfig.json
+
+packages/b24ui-react/
+├── src/
+│   ├── index.ts              # public API (re-exports)
+│   ├── provider.tsx          # B24Provider component
+│   ├── types.ts              # shared types
+│   ├── atoms/                # Jotai atoms (b24-frame, api, user, app-settings, user-settings)
+│   ├── hooks/                # React hooks
+│   └── lib/                  # utilities (api-client, errors, sleep)
+├── package.json
+└── tsconfig.json
 ```
 
-Highlights:
-- Fork of Nuxt UI aligned with Bitrix24 design tokens.
-- Tailwind CSS 4 + Tailwind Variants; 80+ components and composables.
-- Works with Nuxt 4 / Vue 3 / Vite; bundles 1400+ icons via `@bitrix24/b24icons-vue`.
-- **Always** consume components from `@bitrix24/b24ui-nuxt`, not plain Nuxt UI.
+## Setup
 
-## Frontend setup recap
-`nuxt.config.ts`:
+### Entry point (`main.tsx`)
+```tsx
+import { B24Provider } from '@common/b24ui-react'
+import { BrowserRouter, Routes, Route } from 'react-router'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <B24Provider apiBaseUrl="" isDev={import.meta.env.DEV}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<IndexPage />} />
+          <Route path="/install" element={<InstallPage />} />
+        </Routes>
+      </BrowserRouter>
+    </B24Provider>
+  </StrictMode>,
+)
+```
+
+### Tailwind CSS 4
+`vite.config.ts` uses `@tailwindcss/vite`:
 ```ts
-export default defineNuxtConfig({
-  modules: ['@bitrix24/b24ui-nuxt']
+import tailwindcss from '@tailwindcss/vite'
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
 })
 ```
-`assets/css/main.css`:
+`index.css`:
 ```css
 @import 'tailwindcss';
-@import '@bitrix24/b24ui-nuxt';
-```
-`app.vue`:
-```vue
-<template>
-  <B24App :locale="locales[locale]">
-    <NuxtLoadingIndicator color="var(--ui-color-design-filled-warning-bg)" :height="3" />
-    <B24DashboardGroup>
-      <NuxtLayout>
-        <NuxtPage />
-      </NuxtLayout>
-    </B24DashboardGroup>
-  </B24App>
-</template>
 ```
 
 ## Baseline rules
-1. **Wrap everything in `<B24App>`** so global providers (toast, tooltip, overlay) work.
-2. **All components are `B24*`** (`B24Button`, `B24Input`, `B24Form`, `B24Modal`, ...).
-3. **Icons** import from `@bitrix24/b24icons-vue/category/IconName`.
-4. **Pages** live under `pages/` and end with `.client.vue` (renders only in the Bitrix24 iframe). Choose a layout (`default`, `placement`, `slider`, `uf-placement`) that matches the scenario.
-5. **Styling** — use the `b24ui` prop for slot-level tweaks and `class` for wrapping element overrides; avoid global CSS hacks.
-6. **Theme variants** — use predefined `color`/`size` tokens such as `air-primary`, `air-primary-success`, `md`, `lg`, etc.
+1. **Wrap the app in `<B24Provider>`** — provides Jotai store, API base URL, and dev mode flag.
+2. **Use hooks from `@common/b24ui-react`** — never call `initializeB24Frame()` directly.
+3. **Pages are `.tsx` components** in `src/pages/`, wired via React Router.
+4. **Jotai atoms** for shared state — avoid prop drilling.
+5. **Tailwind CSS** for styling — no B24-specific component library.
 
-## Component blueprints
-For common flows prefer the dedicated docs (`accordion.md`, `calendar.md`, `form.md`, `selector.md`, `settings-page.md`, `table-and-grid.md`). Otherwise, rely on these building blocks:
+## Available hooks
 
-### Actions
-- `B24Button` — primary CTA ([code](https://github.com/bitrix24/b24ui/blob/main/src/runtime/components/Button.vue), [theme](https://github.com/bitrix24/b24ui/blob/main/src/theme/button.ts)).
-- `B24FieldGroup` — grouped buttons.
+| Hook | Purpose |
+|------|---------|
+| `useB24Init(options)` | Initialize B24 frame, load profile/app data, get JWT token |
+| `useB24Frame()` | Get the initialized B24Frame instance (throws if not ready) |
+| `useB24FrameOrNull()` | Get B24Frame or null (safe for conditional rendering) |
+| `useApiClient()` | Get a configured API client with JWT auth |
+| `useAppSettings()` | Read/write app-level settings via B24 options API |
+| `useUserSettings()` | Read/write user-level settings via B24 options API |
+| `usePullClient(options)` | Subscribe to B24 Pull (real-time) events |
 
-### Forms
-- `B24Input`, `B24Textarea`, `B24Select`, `B24Checkbox`, `B24RadioGroup`, `B24Switch` — typed controls.
-- `B24Form` + `B24FormField` — schema-based validation (Zod/Valibot/Yup) with built-in layouts.
+### Typical page setup
+```tsx
+import { useB24Init } from '@common/b24ui-react'
 
-### Overlays & notifications
-- `B24Modal`, `B24Slideover`, `B24Toast` (`useToast()`), `B24Tooltip`, `B24Popover`.
+export default function IndexPage() {
+  const { isInitialized, error } = useB24Init({
+    loadData: ['Profile', 'App'],
+  })
 
-### Navigation
-- `B24NavigationMenu`, `B24DropdownMenu`, `B24Tabs`, `B24Breadcrumb`.
+  if (error) return <div>Error: {error.message}</div>
+  if (!isInitialized) return <div>Loading...</div>
 
-### Layouts
-- `B24SidebarLayout` (already used inside `layouts/default.vue` — don’t nest it again inside pages), plus `B24Sidebar*` helpers and `B24Navbar`.
-
-### Data display
-- `B24Avatar`, `B24AvatarGroup`, `B24Badge`, `B24Chip`, `B24Card`, `B24Alert`, `B24Advice`, `B24Table`/`B24TableWrapper`, `B24DescriptionList`, `B24Skeleton`, `B24Empty`.
-
-### Misc components
-- `B24Progress`, `B24Range`, `B24Calendar`, `B24Countdown`, `B24Accordion`/`B24Collapsible`, `B24Separator`, `B24Kbd`.
-
-## Core composables
-- `useToast()` — queued notifications (`add`, `update`, `remove`, `clear`).
-- `useOverlay()` — programmatic modals/slideover with `create`, `open`, `close`, `patch`.
-- `defineShortcuts()` — register global hotkeys.
-- `useLocale()` / `defineLocale()` — i18n wiring.
-- `useConfetti()` — celebratory animation.
-- `useFormField()` — integrate custom inputs with `B24Form`.
-
-## Troubleshooting checklist
-1. Verify installation: module in `nuxt.config.ts`, CSS imports, `<B24App>` wrapper.
-2. Inspect component source (`src/runtime/components`) and `theme` definitions for props/variants.
-3. Confirm dependency versions (`@bitrix24/b24ui-nuxt` ≥ 2.0, `nuxt` ≥ 4).
-4. Typical fixes:
-   - Components missing → wrap with `<B24App>`.
-   - Toast/Tooltip/Modal broken → `<B24App>` absent.
-   - Icons missing → wrong import path.
-   - Styles missing → CSS not imported.
-   - TS errors → check component props in the source.
-
-Useful links: [module source](https://github.com/bitrix24/b24ui/blob/main/src/module.ts), [components](https://github.com/bitrix24/b24ui/tree/main/src/runtime/components), [composables](https://github.com/bitrix24/b24ui/tree/main/src/runtime/composables), [themes](https://github.com/bitrix24/b24ui/tree/main/src/theme), [demo playground](https://github.com/bitrix24/b24ui/tree/main/playgrounds/demo/app).
-
-## State management
-Pinia drives shared state. Example (`useDealsStore`): keep refs for lists, filters, computed getters, async actions, and expose readonly state. For reusable data fetching logic leverage composables like `useApi()` that centralize loading/error state.
-
-## Tailwind CSS 4 integration
-Nuxt uses the Vite plugin version:
-```ts
-// nuxt.config.ts
-import tailwindcss from '@tailwindcss/vite'
-export default defineNuxtConfig({
-  vite: { plugins: [tailwindcss()] }
-})
-```
-`assets/css/main.css`:
-```css
-@import 'tailwindcss';
-@import '@bitrix24/b24ui-nuxt';
-
-@theme static {
-  /* custom utilities */
+  return <div>App content</div>
 }
 ```
-Extend tokens via `@theme { ... }` blocks.
 
-## Responsive patterns
-Use Tailwind breakpoints (`md`, `lg`, `xl`) for grid layouts, and `B24Slideover` for mobile navigation. Example snippets show responsive grids, mobile nav toggles, and data tables with filters.
+## Available atoms
+
+### B24 Frame
+- `b24FrameAtom` — the B24Frame instance
+- `langAtom` — portal language
+- `appSidAtom` — application SID
+- `isInstallModeAtom` — whether app is in install flow
+- `placementAtom` — current placement info
+
+### API
+- `tokenJWTAtom` — JWT token for backend API calls
+- `isInitTokenJWTAtom` — whether token has been fetched
+
+### User
+- `userIdAtom`, `userLoginAtom`, `userIsAdminAtom` — current user info
+- `initUserFromBatchAtom` — action to load user data
+
+### App settings
+- `appVersionAtom`, `appStatusAtom`, `appIsTrialAtom` — app metadata
+- `appConfigSettingsAtom` — app config (read/write via `useAppSettings`)
+
+### User settings
+- `userConfigSettingsAtom` — user config (read/write via `useUserSettings`)
+
+## State management
+Jotai drives shared state. Import atoms from `@common/b24ui-react` and use them with `useAtom` / `useAtomValue` / `useSetAtom` from `jotai`. For page-local state, use standard React `useState` / `useReducer`.
+
+```tsx
+import { useAtomValue } from 'jotai'
+import { userIdAtom } from '@common/b24ui-react'
+
+function UserBadge() {
+  const userId = useAtomValue(userIdAtom)
+  return <span>User #{userId}</span>
+}
+```
 
 ## Performance tips
-- Lazy-load heavy components via `defineAsyncComponent`.
-- Use list patterns from `B24Table` / `B24Card` combos.
-- Memoize derived data (computed), debounce inputs, and prefer batch API calls.
-
-## Utilities
-Create shared formatters (currency, date, relative time, truncation) under `utils/formatters.ts` and import where needed.
+- Use React Compiler (enabled via `babel-plugin-react-compiler` in Vite config) — auto-memoization.
+- Prefer `useAtomValue` over `useAtom` when you only read (avoids unnecessary re-renders).
+- Use `React.lazy()` for code-splitting heavy page components.
+- Batch related B24 API calls with `callBatch` / `callBatchByChunk`.
+- Debounce user inputs before triggering API calls.
 
 ## Best practices
-1. Stick to B24 components, separate smart/dumb components, and document props/emits.
-2. Manage state with Pinia + composables; avoid deep prop drilling (use provide/inject).
-3. Prioritize performance (lazy loading, virtualization, memoization, debouncing).
-4. Accessibility comes built-in, but preserve semantics and default color tokens.
+1. Keep pages thin — extract logic into hooks, atoms, or utility functions.
+2. Use Tailwind utility classes; avoid inline styles and CSS modules.
+3. Handle loading/error states in every page that calls `useB24Init`.
+4. Never call B24 SDK methods before initialization completes.
+5. Use TypeScript strictly — leverage types from `@common/b24ui-react` and `@bitrix24/b24jssdk`.
 
 ## Resources
-- Docs: <https://bitrix24.github.io/b24ui/>
-- Icons: <https://bitrix24.github.io/b24icons/>
-- Repository: <https://github.com/bitrix24/b24ui>
-- Demo: <https://bitrix24.github.io/b24ui/demo/>
-- Starter template: <https://github.com/bitrix24/starter-b24ui>
-- Extended AI README: <https://github.com/bitrix24/b24ui/blob/main/README-AI.md>
-
-> Version 2.1.0 — updated November 2025 — MIT license.
+- B24 JS SDK: <https://github.com/bitrix24/b24jssdk>
+- B24 REST API: <https://apidocs.bitrix24.com>
+- React Router: <https://reactrouter.com>
+- Jotai: <https://jotai.org>
+- Tailwind CSS: <https://tailwindcss.com>

@@ -1,9 +1,8 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { ApiModule } from "./api/api.module";
-import { AppController } from "./app.controller";
-import { AuthModule } from "./auth/auth.module";
-import { DatabaseModule } from "./database/database.module";
+import { AppController } from "@/app.controller";
+import { AuthModule } from "@/auth/auth.module";
+import { DatabaseModule } from "@/database/database.module";
 
 @Module({
   imports: [
@@ -12,7 +11,6 @@ import { DatabaseModule } from "./database/database.module";
     }),
     DatabaseModule,
     AuthModule,
-    ApiModule,
   ],
   controllers: [AppController],
 })

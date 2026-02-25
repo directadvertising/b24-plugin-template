@@ -4,10 +4,10 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as jwt from 'jsonwebtoken';
-import type { Request } from 'express';
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import type { Request } from "express";
+import * as jwt from "jsonwebtoken";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -16,10 +16,10 @@ export class AuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
 
-    const jwtSecret = this.configService.get<string>('JWT_SECRET');
+    const jwtSecret = this.configService.get<string>("JWT_SECRET");
     if (!jwtSecret) {
       throw new HttpException(
-        { error: 'JWT_SECRET is not configured' },
+        { error: "JWT_SECRET is not configured" },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -27,15 +27,15 @@ export class AuthGuard implements CanActivate {
     const authHeader = request.headers.authorization;
     if (!authHeader) {
       throw new HttpException(
-        { error: 'Authorization header missing' },
+        { error: "Authorization header missing" },
         HttpStatus.UNAUTHORIZED,
       );
     }
 
-    const tokenParts = authHeader.split(' ');
-    if (tokenParts.length !== 2 || tokenParts[0] !== 'Bearer') {
+    const tokenParts = authHeader.split(" ");
+    if (tokenParts.length !== 2 || tokenParts[0] !== "Bearer") {
       throw new HttpException(
-        { error: 'Invalid token format' },
+        { error: "Invalid token format" },
         HttpStatus.UNAUTHORIZED,
       );
     }
@@ -44,11 +44,11 @@ export class AuthGuard implements CanActivate {
 
     try {
       const decoded = jwt.verify(token, jwtSecret);
-      (request as any).user = decoded;
+      (request as unknown as Record<string, unknown>).user = decoded;
       return true;
     } catch {
       throw new HttpException(
-        { error: 'Invalid or expired token' },
+        { error: "Invalid or expired token" },
         HttpStatus.UNAUTHORIZED,
       );
     }

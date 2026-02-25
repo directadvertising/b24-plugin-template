@@ -1,17 +1,14 @@
-import { Logger, Module, type OnApplicationShutdown, type OnModuleInit } from "@nestjs/common";
+import {
+  Logger,
+  Module,
+  type OnApplicationShutdown,
+  type OnModuleInit,
+} from "@nestjs/common";
 import { ModuleRef } from "@nestjs/core";
-import { type Kysely, type Migration, type MigrationProvider, Migrator } from "kysely";
-import * as migrations from "../migrations/001_bitrix";
+import { type Kysely, Migrator } from "kysely";
+import * as MIGRATIONS from "@/migrations";
 import { DATABASE_TOKEN, databaseProvider } from "./database.provider";
 import type { Database } from "./database.types";
-
-class StaticMigrationProvider implements MigrationProvider {
-  constructor(private readonly migrations: Record<string, Migration>) {}
-
-  async getMigrations(): Promise<Record<string, Migration>> {
-    return this.migrations;
-  }
-}
 
 @Module({
   providers: [databaseProvider],
@@ -27,9 +24,9 @@ export class DatabaseModule implements OnModuleInit, OnApplicationShutdown {
 
     const migrator = new Migrator({
       db,
-      provider: new StaticMigrationProvider({
-        "001_bitrix": migrations,
-      }),
+      provider: {
+        getMigrations: async () => MIGRATIONS,
+      },
     });
 
     const { error, results } = await migrator.migrateToLatest();
