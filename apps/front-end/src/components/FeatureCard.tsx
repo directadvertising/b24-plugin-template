@@ -1,63 +1,32 @@
-import Avatar from "@mui/material/Avatar";
-import Box from "@mui/material/Box";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Chip from "@mui/material/Chip";
-import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
 
 interface FeatureCardProps {
   icon: ReactNode;
   title: string;
   description: string;
-  chipLabel: string;
-  chipColor?:
-    | "primary"
-    | "secondary"
-    | "success"
-    | "warning"
-    | "info"
-    | "error"
-    | "default";
+  badge: string;
 }
 
 export default function FeatureCard({
   icon,
   title,
   description,
-  chipLabel,
-  chipColor = "primary",
+  badge,
 }: FeatureCardProps) {
   return (
-    <Card variant="outlined">
-      <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Avatar
-            sx={{
-              bgcolor: `${chipColor}.light`,
-              color: `${chipColor}.main`,
-              width: 44,
-              height: 44,
-            }}
-          >
-            {icon}
-          </Avatar>
-          <Typography variant="h6" fontWeight={600}>
-            {title}
-          </Typography>
-        </Box>
-        <Typography variant="body2" color="text.secondary">
-          {description}
-        </Typography>
-        <Box>
-          <Chip
-            label={chipLabel}
-            color={chipColor}
-            size="small"
-            variant="outlined"
-          />
-        </Box>
-      </CardContent>
-    </Card>
+    <div className="rounded-xl border bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex items-center gap-3">
+        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          {icon}
+        </div>
+        <h3 className="font-semibold">{title}</h3>
+      </div>
+      <p className="mt-3 text-sm text-muted-foreground">{description}</p>
+      <div className="mt-3">
+        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+          {badge}
+        </span>
+      </div>
+    </div>
   );
 }

@@ -1,0 +1,37 @@
+{
+  "$schema": "file:///home/ivan/.forge/schemas/forgerc.schema.json",
+  "name": "Bitrix24 Template",
+  "description": "Bitrix24 application starter kit",
+  "code": "b24-template",
+  "environment": {
+    "compose_file": "docker-compose.yml",
+    "hooks": {
+      "pre_start": [],
+      "post_start": [],
+      "pre_stop": [],
+      "post_stop": []
+    },
+    "alias": {
+      "front-end": {
+        "port": 5173,
+        "alias": null,
+        "https": true,
+        "cloudflare": true
+      },
+      "back-end": {
+        "port": 3000,
+        "alias": null,
+        "path": "/api",
+        "https": true,
+        "cloudflare": true
+      },
+      "minio": {
+        "port": 9000,
+        "alias": null,
+        "path": "/files",
+        "https": true,
+        "cloudflare": true
+      }
+    }
+  }
+}

@@ -1,12 +1,6 @@
 import { useApiClient } from "@common/b24ui-react";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Chip from "@mui/material/Chip";
-import CircularProgress from "@mui/material/CircularProgress";
-import Typography from "@mui/material/Typography";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function BackendStatus() {
   const client = useApiClient();
@@ -34,62 +28,54 @@ export default function BackendStatus() {
   };
 
   return (
-    <Card variant="outlined">
-      <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <Typography variant="h6" fontWeight={600}>
-          Backend Status
-        </Typography>
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
+      <h3 className="font-semibold">Backend Status</h3>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          {status === "checking" ? (
-            <CircularProgress size={16} />
-          ) : (
-            <Chip
-              label={
-                status === "healthy"
-                  ? "Connected"
-                  : status === "error"
-                    ? "Connection failed"
-                    : "Not checked"
-              }
-              color={
-                status === "healthy"
-                  ? "success"
-                  : status === "error"
-                    ? "error"
-                    : "default"
-              }
-              size="small"
-              variant="outlined"
-            />
-          )}
-        </Box>
-
-        {info && (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-            <Typography variant="caption" color="text.secondary">
-              Status: {info.status}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Backend: {info.backend}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Timestamp: {new Date(info.timestamp).toLocaleString()}
-            </Typography>
-          </Box>
-        )}
-
-        <Box>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={checkHealth}
-            disabled={status === "checking"}
+      <div className="mt-3 flex items-center gap-2">
+        {status === "checking" ? (
+          <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        ) : (
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+              status === "healthy"
+                ? "border-green-200 bg-green-50 text-green-700"
+                : status === "error"
+                  ? "border-red-200 bg-red-50 text-red-700"
+                  : "border-gray-200 bg-gray-50 text-gray-600"
+            }`}
           >
-            {status === "checking" ? "Checking..." : "Check"}
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
+            {status === "healthy"
+              ? "Connected"
+              : status === "error"
+                ? "Connection failed"
+                : "Not checked"}
+          </span>
+        )}
+      </div>
+
+      {info && (
+        <div className="mt-2 flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground">
+            Status: {info.status}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Backend: {info.backend}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Timestamp: {new Date(info.timestamp).toLocaleString()}
+          </span>
+        </div>
+      )}
+
+      <div className="mt-3">
+        <Button
+          size="sm"
+          onClick={checkHealth}
+          disabled={status === "checking"}
+        >
+          {status === "checking" ? "Checking..." : "Check"}
+        </Button>
+      </div>
+    </div>
   );
 }

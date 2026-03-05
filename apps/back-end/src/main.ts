@@ -11,7 +11,7 @@ async function bootstrap() {
   app.use(urlencoded({ limit: "50mb", extended: true }));
   app.enableCors();
 
-  const port = process.env.PORT ?? 8000;
+  const port = process.env.PORT ?? 3000;
   await app.listen(port);
 
   console.log(`Server running on port ${port}`);

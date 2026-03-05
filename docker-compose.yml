@@ -1,4 +1,77 @@
 services:
+  back-end:
+    build:
+      context: .
+      dockerfile: apps/back-end/Dockerfile
+      target: dev
+    container_name: b24-back-end
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-appdb}
+      DB_USER: ${DB_USER:-appuser}
+      DB_PASSWORD: ${DB_PASSWORD:-apppass}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3000
+    expose:
+      - "3000"
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+      - forge-network
+    restart: no
+
+  express:
+    build:
+      context: .
+      dockerfile: apps/express/Dockerfile
+      target: dev
+    container_name: b24-express
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-appdb}
+      DB_USER: ${DB_USER:-appuser}
+      DB_PASSWORD: ${DB_PASSWORD:-apppass}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3000
+    expose:
+      - "3000"
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+      - forge-network
+    profiles:
+      - express
+    restart: no
+
+  front-end:
+    build:
+      context: .
+      dockerfile: apps/front-end/Dockerfile
+      target: dev
+    container_name: b24-front-end
+    environment:
+      API_URL: ${API_URL:-http://back-end:3000}
+    expose:
+      - "5173"
+    volumes:
+      - .:/app
+    depends_on:
+      - back-end
+    networks:
+      - internal
+      - forge-network
+    restart: no
+
   postgres:
     image: postgres:17-alpine
     container_name: b24-postgres
@@ -6,8 +79,6 @@ services:
       POSTGRES_DB: ${DB_NAME:-appdb}
       POSTGRES_USER: ${DB_USER:-appuser}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-apppass}
-    ports:
-      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -15,6 +86,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - internal
     restart: no
 
   rabbitmq:
@@ -23,9 +96,9 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-queue_user}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-queue_password}
-    ports:
-      - "127.0.0.1:${RABBITMQ_PORT:-5672}:5672"
-      - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    expose:
+      - "5672"
+      - "15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -33,6 +106,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - internal
     restart: no
 
   minio:
@@ -42,9 +117,9 @@ services:
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
-    ports:
-      - "127.0.0.1:${S3_PORT:-9000}:9000"
-      - "127.0.0.1:${S3_CONSOLE_PORT:-9001}:9001"
+    expose:
+      - "9000"
+      - "9001"
     volumes:
       - minio_data:/data
     healthcheck:
@@ -52,9 +127,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - internal
+      - forge-network
     restart: no
 
 volumes:
   pgdata:
   rabbitmq_data:
   minio_data:
+
+networks:
+  internal:
+  forge-network:
+    external: true

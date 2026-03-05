@@ -7,7 +7,8 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 
 ```
 ├── apps/
-│   ├── back-end/         # NestJS API (port 8000)
+│   ├── back-end/         # NestJS API (port 3000)
+│   ├── express/          # Express 5 API (port 3000) — alternative backend
 │   └── front-end/        # React 19 + Vite SPA
 │       ├── src/           # pages, components, hooks, atoms
 │       └── vite.config.ts
@@ -15,7 +16,7 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 │   ├── contracts/        # @common/contracts — API contracts (Zod schemas, routes, types)
 │   └── b24ui-react/      # @common/b24ui-react — B24 React hooks, atoms, provider
 ├── instructions/         # AI agent knowledge base (see below)
-└── docker-compose.yml    # Dev services: PostgreSQL, RabbitMQ, MinIO
+└── docker-compose.yml    # Dev services: apps + PostgreSQL, RabbitMQ, MinIO
 ```
 
 ## Commits
@@ -25,27 +26,34 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 
 ## Dev Servers
 
-- **NEVER** run dev servers yourself (e.g. `pnpm dev`, `pnpm start:dev`, `vite`, `nest start`) — the user manages them manually
+- **NEVER** run dev servers directly (e.g. `pnpm dev`, `pnpm start:dev`, `vite`) — use `docker compose` exclusively for the development server
+- To check server output, use `docker compose logs back-end` or `docker compose logs front-end`
 
 ## Tech Stack
 
-- **Backend:** NestJS, Kysely — `apps/back-end/`
-- **Frontend:** React 19, Vite, Tailwind CSS 4, Jotai, `@common/b24ui-react` — `apps/front-end/`
+- **Backend (NestJS):** NestJS, Kysely — `apps/back-end/`
+- **Backend (Express):** Express 5, Kysely — `apps/express/` (alternative, uses Docker profile `express`)
+- **Frontend:** React 19, Vite, Tailwind CSS 4, shadcn/ui, Jotai, `@common/b24ui-react` — `apps/front-end/`
 - **Database:** PostgreSQL 17 (Alpine), Kysely query builder
 - **Queue:** RabbitMQ 3.13
 - **Object Storage:** MinIO (S3-compatible)
 
 ## Development Services (docker-compose.yml)
 
-`docker compose up` starts three infrastructure services:
+`docker compose up` starts all services. Routing goes through **Forge** (Traefik reverse proxy):
 
-| Service    | Ports       | Purpose                                        |
-| ---------- | ----------- | ---------------------------------------------- |
-| PostgreSQL | 5432        | Database (schema managed by Kysely migrations) |
-| RabbitMQ   | 5672, 15672 | Message queue + management UI                  |
-| MinIO      | 9000, 9001  | S3-compatible storage + console                |
-
-The NestJS and React apps run on the host, not in containers.
+| Service    | Internal Port | Forge Route                        | Purpose                                        |
+| ---------- | ------------- | ---------------------------------- | ---------------------------------------------- |
+| front-end  | 5173          | `b24-template.local/`              | Vite dev server                                |
+| back-end   | 3000          | `b24-template.local/api`           | NestJS API server                              |
+| minio      | 9000          | `b24-template.local/files`         | S3-compatible storage                          |
+| PostgreSQL | 5432          | (internal only)                    | Database (schema managed by Kysely migrations) |
+| RabbitMQ   | 5672          | (internal only)                    | Message queue                                  |
+To use the Express backend instead of NestJS:
+```bash
+docker compose --profile express up
+```
+The Express service replaces NestJS at port 3000 and uses the same database.
 
 ## Environment
 
@@ -57,10 +65,15 @@ Configuration lives in `.env` (copy from `.env.example`). Key variables:
 - `JWT_SECRET` — JWT signing key
 - `CLIENT_ID`, `CLIENT_SECRET` — Bitrix24 OAuth
 - `NODE_ENV` — `development` or `production`
+- `API_URL` — Backend URL for front-end proxy (default: `http://back-end:3000`)
 
 ## Database (Kysely)
 
-Database access uses Kysely with the `pg` driver. The `DatabaseModule` (`apps/back-end/src/database/`) provides a typed `Kysely<Database>` instance via NestJS DI.
+Database access uses Kysely with the `pg` driver.
+
+### NestJS Backend
+
+The `DatabaseModule` (`apps/back-end/src/database/`) provides a typed `Kysely<Database>` instance via NestJS DI.
 
 - **Types:** `database.types.ts` — interfaces matching the database schema
 - **Provider:** `database.provider.ts` — factory creating Kysely with `pg.Pool` from env vars, exports `InjectDatabase()` decorator
@@ -81,6 +94,52 @@ export class MyService {
   constructor(@InjectDatabase() private readonly db: DatabaseConnection) {}
 }
 ```
+
+### Express Backend
+
+The `db.ts` file exports a typed `Kysely<Database>` instance and `runMigrations()`.
+
+```ts
+import { db } from "./db";
+// Types: Bitrix24Account, ApplicationInstallation
+// Helpers: SelectBitrix24Account, InsertBitrix24Account, etc.
+```
+
+## Express Backend Architecture (`apps/express/`)
+
+### Middleware
+
+- **`auth.ts`** — JWT Bearer token validation, attaches `req.user`
+- **`contract.ts`** — `contractMiddleware({ params, query, body, response: { data } })` for Zod validation + response envelope. `ContractError` for typed error responses. `contractErrorHandler` as Express error handler.
+
+### Routes
+
+```
+POST /getToken     — JWT token issuance
+POST /install      — B24 OAuth installation
+GET  /health       — Health check (auth required)
+```
+
+### Adding New Routes
+
+1. Create a new router file in `src/routes/`:
+```ts
+import { Router } from "express";
+import { authMiddleware } from "../middleware/auth";
+
+export const myRouter = Router();
+
+myRouter.get("/my-endpoint", authMiddleware, (req, res) => {
+  res.json({ hello: "world" });
+});
+```
+
+2. Export from `src/routes/index.ts`:
+```ts
+export { myRouter } from "./my-route";
+```
+
+The router is auto-loaded in `main.ts`.
 
 ## Instructions System (for AI agents)
 
@@ -114,7 +173,9 @@ instructions/
 - Routing via React Router (`react-router`) — pages are `.tsx` components in `src/pages/`
 - Hooks from `@common/b24ui-react`: `useB24Init`, `useApiClient`, `useB24Frame`, `useB24FrameOrNull`
 - State management via Jotai atoms (exported from `@common/b24ui-react`)
+- UI components via shadcn/ui — add new components with `pnpm --filter front-end exec shadcn add <component>`
 - Tailwind CSS 4 via `@tailwindcss/vite` plugin
+- `@` path alias resolves to `src/` (configured in tsconfig.app.json and vite.config.ts)
 
 ## Contracts (`packages/contracts/`)
 
@@ -169,7 +230,9 @@ export const $ = createContract({
 
 **Response envelope:** All responses follow `{ success: true, data: T }` on success and `{ success: false, error: { code, message } }` on failure. The server validates return values against the `data` schema (500 on mismatch).
 
-## Backend Contract Usage (`contracts-nestjs`)
+## Backend Contract Usage
+
+### NestJS (`contracts-nestjs`)
 
 Use `@BindContract` from `contracts-nestjs` on controller methods — it replaces `@Get()` / `@Post()` decorators entirely and auto-wires routing, validation, and response formatting from the contract definition. Always import `$` from `@common/contracts`.
 
@@ -195,12 +258,34 @@ export class MyFeatureController {
 - **Output validation** — response checked against `data` schema; mismatch → 500
 - **Error formatting** — all errors follow `{ success: false, error: { code, message } }`
 
+### Express (`contractMiddleware`)
+
+Use `contractMiddleware` from `middleware/contract.ts` to bind contract routes in Express:
+
+```ts
+import { Router } from "express";
+import { contractMiddleware } from "../middleware/contract";
+import { $ } from "@common/contracts";
+
+const router = Router();
+
+router.get(
+  $.routes.getItem.pathTemplate,
+  contractMiddleware($.routes.getItem),
+  authMiddleware,
+  async (req, res) => {
+    // req.params, req.query, req.body are validated
+    // res.json(data) auto-wraps as { success: true, data }
+    res.json({ id: req.params.id, title: "Example" });
+  },
+);
+```
+
 ## Development Workflow
 
 1. Copy `.env.example` to `.env` and fill in credentials
-2. `docker compose up` — start PostgreSQL, RabbitMQ, MinIO
-3. `pnpm --filter back-end run start:dev` — start the NestJS API
-4. Register the app in your Bitrix24 portal with the public URL
+2. `docker compose up` — start all services
+3. Register the app in your Bitrix24 portal with the public URL
 
 ## Resources
 
