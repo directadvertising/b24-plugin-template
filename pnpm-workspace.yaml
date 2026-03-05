@@ -9,5 +9,6 @@ onlyBuiltDependencies:
   - contracts-nestjs
   - esbuild
   - lefthook
+  - msw
   - tsx
   - unrs-resolver
