@@ -7,8 +7,7 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 
 ```
 ├── apps/
-│   ├── back-end/         # NestJS API (port 3000)
-│   ├── express/          # Express 5 API (port 3000) — alternative backend
+│   ├── back-end/         # Express 5 API (port 3000)
 │   └── front-end/        # React 19 + Vite SPA
 │       ├── src/           # pages, components, hooks, atoms
 │       └── vite.config.ts
@@ -31,8 +30,7 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 
 ## Tech Stack
 
-- **Backend (NestJS):** NestJS, Kysely — `apps/back-end/`
-- **Backend (Express):** Express 5, Kysely — `apps/express/` (alternative, uses Docker profile `express`)
+- **Backend:** Express 5, Kysely — `apps/back-end/`
 - **Frontend:** React 19, Vite, Tailwind CSS 4, shadcn/ui, Jotai, `@common/b24ui-react` — `apps/front-end/`
 - **Database:** PostgreSQL 17 (Alpine), Kysely query builder
 - **Queue:** RabbitMQ 3.13
@@ -45,15 +43,10 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 | Service    | Internal Port | Forge Route                        | Purpose                                        |
 | ---------- | ------------- | ---------------------------------- | ---------------------------------------------- |
 | front-end  | 5173          | `b24-template.local/`              | Vite dev server                                |
-| back-end   | 3000          | `b24-template.local/api`           | NestJS API server                              |
+| back-end   | 3000          | `b24-template.local/api`           | Express API server                             |
 | minio      | 9000          | `b24-template.local/files`         | S3-compatible storage                          |
 | PostgreSQL | 5432          | (internal only)                    | Database (schema managed by Kysely migrations) |
 | RabbitMQ   | 5672          | (internal only)                    | Message queue                                  |
-To use the Express backend instead of NestJS:
-```bash
-docker compose --profile express up
-```
-The Express service replaces NestJS at port 3000 and uses the same database.
 
 ## Environment
 
@@ -71,32 +64,6 @@ Configuration lives in `.env` (copy from `.env.example`). Key variables:
 
 Database access uses Kysely with the `pg` driver.
 
-### NestJS Backend
-
-The `DatabaseModule` (`apps/back-end/src/database/`) provides a typed `Kysely<Database>` instance via NestJS DI.
-
-- **Types:** `database.types.ts` — interfaces matching the database schema
-- **Provider:** `database.provider.ts` — factory creating Kysely with `pg.Pool` from env vars, exports `InjectDatabase()` decorator
-- **Module:** `database.module.ts` — exports `DATABASE_TOKEN`, handles pool shutdown
-- **Migrations:** `migrations/` — Kysely migration files (e.g. `001_bitrix.ts`)
-
-Inject in any service:
-
-```ts
-import { Injectable } from "@nestjs/common";
-import {
-  InjectDatabase,
-  type DatabaseConnection,
-} from "../database/database.provider";
-
-@Injectable()
-export class MyService {
-  constructor(@InjectDatabase() private readonly db: DatabaseConnection) {}
-}
-```
-
-### Express Backend
-
 The `db.ts` file exports a typed `Kysely<Database>` instance and `runMigrations()`.
 
 ```ts
@@ -105,7 +72,7 @@ import { db } from "./db";
 // Helpers: SelectBitrix24Account, InsertBitrix24Account, etc.
 ```
 
-## Express Backend Architecture (`apps/express/`)
+## Backend Architecture (`apps/back-end/`)
 
 ### Middleware
 
@@ -179,7 +146,7 @@ instructions/
 
 ## Contracts (`packages/contracts/`)
 
-All API contracts live in `packages/contracts/` (package `@common/contracts`). The single contract object is exported as **`$`** from `packages/contracts/src/index.ts`. All routes are defined on `$`, and `$` is used for `@BindContract` binding and type extraction throughout the project.
+All API contracts live in `packages/contracts/` (package `@common/contracts`). The single contract object is exported as **`$`** from `packages/contracts/src/index.ts`. All routes are defined on `$`, and `$` is used for type extraction throughout the project.
 
 Use `createContract` from the `contracts` dependency to define routes on `$`:
 
@@ -230,35 +197,7 @@ export const $ = createContract({
 
 **Response envelope:** All responses follow `{ success: true, data: T }` on success and `{ success: false, error: { code, message } }` on failure. The server validates return values against the `data` schema (500 on mismatch).
 
-## Backend Contract Usage
-
-### NestJS (`contracts-nestjs`)
-
-Use `@BindContract` from `contracts-nestjs` on controller methods — it replaces `@Get()` / `@Post()` decorators entirely and auto-wires routing, validation, and response formatting from the contract definition. Always import `$` from `@common/contracts`.
-
-```ts
-import { BindContract } from "contracts-nestjs";
-import { $ } from "@common/contracts";
-
-@Controller()
-export class MyFeatureController {
-  @BindContract($, "getItems")
-  async getItems(@Query() query: $.Query<"getItems">) {
-    // return raw data — automatically wrapped as { success: true, data }
-    return items;
-  }
-}
-```
-
-**What `@BindContract` handles automatically:**
-
-- **Routing** — HTTP method + path derived from the contract route
-- **Input validation** — body, query, params validated against Zod schemas; invalid → 400
-- **Response wrapping** — return value `T` wrapped as `{ success: true, data: T }`
-- **Output validation** — response checked against `data` schema; mismatch → 500
-- **Error formatting** — all errors follow `{ success: false, error: { code, message } }`
-
-### Express (`contractMiddleware`)
+## Backend Contract Usage (`contractMiddleware`)
 
 Use `contractMiddleware` from `middleware/contract.ts` to bind contract routes in Express:
 

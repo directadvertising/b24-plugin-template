@@ -59,11 +59,11 @@ The starter provides a Bitrix24 app skeleton that uses a simplified OAuth 2.0 in
 
 ### Backend
 
-- **Node.js:** see [`node/knowledge.md`](node/knowledge.md) (recommended for full-stack JS)
+- **Node.js (Express 5):** see [`node/knowledge.md`](node/knowledge.md)
 
 ### Frontend
 
-Use the patterns documented in [`front/knowledge.md`](front/knowledge.md) regardless of backend choice.
+Use the patterns documented in [`front/knowledge.md`](front/knowledge.md).
 
 ## 🛡️ Manual Security Checks
 
@@ -108,7 +108,7 @@ Use the patterns documented in [`front/knowledge.md`](front/knowledge.md) regard
 
 ### Step 2 — Choose the stack
 
-1. Pick PHP/Python/Node.js based on requirements.
+1. Backend uses Express 5 with TypeScript.
 2. Frontend must rely on Bitrix24 UI Kit for consistent UX.
 
 ### Step 3 — Read specialized docs

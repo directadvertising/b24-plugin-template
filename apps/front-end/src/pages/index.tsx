@@ -66,7 +66,7 @@ export default function IndexPage() {
             A production-ready template for building Bitrix24 applications
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {["React 19", "NestJS", "Express", "TypeScript"].map((label) => (
+            {["React 19", "Express 5", "TypeScript"].map((label) => (
               <span
                 key={label}
                 className="rounded-full bg-white/20 px-3 py-1 text-sm font-medium"
@@ -112,8 +112,8 @@ export default function IndexPage() {
           />
           <FeatureCard
             icon={<Database className="size-5" />}
-            title="NestJS + Kysely"
-            description="Type-safe backend with structured modules, guards, and query builder."
+            title="Express + Kysely"
+            description="Type-safe backend with contract middleware and Kysely query builder."
             badge="Backend"
           />
           <FeatureCard
