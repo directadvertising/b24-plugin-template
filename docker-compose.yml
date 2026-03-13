@@ -25,34 +25,6 @@ services:
       - forge-network
     restart: no
 
-  express:
-    build:
-      context: .
-      dockerfile: apps/express/Dockerfile
-      target: dev
-    container_name: b24-express
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-appdb}
-      DB_USER: ${DB_USER:-appuser}
-      DB_PASSWORD: ${DB_PASSWORD:-apppass}
-      JWT_SECRET: ${JWT_SECRET}
-      PORT: 3000
-    expose:
-      - "3000"
-    volumes:
-      - .:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - internal
-      - forge-network
-    profiles:
-      - express
-    restart: no
-
   front-end:
     build:
       context: .

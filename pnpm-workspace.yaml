@@ -3,10 +3,7 @@ packages:
   - packages/*
 
 onlyBuiltDependencies:
-  - '@nestjs/core'
   - '@parcel/watcher'
-  - contracts
-  - contracts-nestjs
   - esbuild
   - lefthook
   - msw
