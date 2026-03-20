@@ -2,10 +2,20 @@ packages:
   - apps/*
   - packages/*
 
+supportedArchitectures:
+  os:
+    - current
+    - linux
+  cpu:
+    - current
+    - arm64
+
 onlyBuiltDependencies:
   - '@parcel/watcher'
+  - contracts
   - esbuild
   - lefthook
   - msw
   - tsx
   - unrs-resolver
+  - b24ui-react

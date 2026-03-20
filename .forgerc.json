@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/ivancerovina/forge/refs/heads/master/internal/config/forgerc.schema.json",
-  "name": "Bitrix24 Template",
+  "name": "Cashflow",
   "description": "Bitrix24 application starter kit",
-  "code": "b24-template",
+  "code": "b24-cashflow",
   "environment": {
     "compose_file": "docker-compose.yml",
     "hooks": {
@@ -13,14 +13,14 @@
     },
     "alias": [
       {
-        "service": "front-end",
+        "service": "b24-front-end",
         "port": 5173,
         "alias": null,
         "https": true,
         "cloudflare": true
       },
       {
-        "service": "back-end",
+        "service": "b24-back-end",
         "port": 3000,
         "alias": null,
         "path": "/api",
@@ -28,7 +28,7 @@
         "cloudflare": true
       },
       {
-        "service": "minio",
+        "service": "b24-minio",
         "port": 9000,
         "alias": null,
         "path": "/files",

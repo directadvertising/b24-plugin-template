@@ -33,6 +33,7 @@ services:
     container_name: b24-front-end
     environment:
       API_URL: ${API_URL:-http://back-end:3000}
+      VITE_APP_URL: ${VITE_APP_URL:-https://b24-cashflow.directadv.gay}
     expose:
       - "5173"
     volumes:

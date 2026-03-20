@@ -1,12 +1,5 @@
 import { useB24FrameOrNull, useB24Init } from "@common/b24ui-react";
-import {
-  Code,
-  Database,
-  Lock,
-  Rocket,
-  TableProperties,
-  Widgets,
-} from "lucide-react";
+import { Code, Database, Lock, Rocket, TableProperties } from "lucide-react";
 import { useEffect, useRef } from "react";
 import BackendStatus from "../components/BackendStatus";
 import FeatureCard from "../components/FeatureCard";
@@ -121,12 +114,6 @@ export default function IndexPage() {
             title="OAuth 2.0"
             description="Simplified Bitrix24 OAuth flow with JWT session management."
             badge="Auth"
-          />
-          <FeatureCard
-            icon={<Widgets className="size-5" />}
-            title="CRM Widgets"
-            description="Pre-configured deal tab and custom field placements ready to use."
-            badge="Widgets"
           />
           <FeatureCard
             icon={<TableProperties className="size-5" />}
