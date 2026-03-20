@@ -1,5 +1,5 @@
 {
-  "$schema": "file:///home/ivan/.forge/schemas/forgerc.schema.json",
+  "$schema": "https://raw.githubusercontent.com/ivancerovina/forge/refs/heads/master/internal/config/forgerc.schema.json",
   "name": "Bitrix24 Template",
   "description": "Bitrix24 application starter kit",
   "code": "b24-template",
@@ -11,27 +11,30 @@
       "pre_stop": [],
       "post_stop": []
     },
-    "alias": {
-      "front-end": {
+    "alias": [
+      {
+        "service": "front-end",
         "port": 5173,
         "alias": null,
         "https": true,
         "cloudflare": true
       },
-      "back-end": {
+      {
+        "service": "back-end",
         "port": 3000,
         "alias": null,
         "path": "/api",
         "https": true,
         "cloudflare": true
       },
-      "minio": {
+      {
+        "service": "minio",
         "port": 9000,
         "alias": null,
         "path": "/files",
         "https": true,
         "cloudflare": true
       }
-    }
+    ]
   }
 }
