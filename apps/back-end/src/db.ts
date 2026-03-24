@@ -7,7 +7,7 @@ import type {
 } from "kysely";
 import { Kysely, Migrator, PostgresDialect } from "kysely";
 import pg from "pg";
-import * as m001 from "./migrations/m_001_bitrix";
+import * as migrations from "./migrations";
 
 // ── Bitrix24 tables ──────────────────────────────────────────────
 
@@ -89,9 +89,7 @@ export async function runMigrations() {
     db,
     provider: {
       async getMigrations() {
-        return {
-          m_001_bitrix: m001,
-        };
+        return migrations;
       },
     },
   });

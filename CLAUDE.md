@@ -72,18 +72,74 @@ import { db } from "./db";
 // Helpers: SelectBitrix24Account, InsertBitrix24Account, etc.
 ```
 
+### Migrations
+
+Migrations live in `apps/back-end/src/migrations/` and are re-exported via a barrel file (`migrations/index.ts`). When adding a new migration:
+
+1. Create `m_NNN_name.ts` in the migrations folder
+2. Add `export * as m_NNN_name from "./m_NNN_name";` to `migrations/index.ts`
+
+The migrator in `db.ts` picks up all exports from the barrel automatically — no need to touch `db.ts`.
+
 ## Backend Architecture (`apps/back-end/`)
+
+### Security & Authentication
+
+The app uses a multi-layered security model to verify both user identity and platform authenticity.
+
+**Authentication flow:**
+
+1. App runs inside Bitrix24's iframe. The B24 JS SDK provides OAuth credentials (`AUTH_ID`, `REFRESH_ID`, `member_id`, `domain`).
+2. Frontend sends these to `POST /api/install` (first time) or `POST /api/getToken` (subsequent opens).
+3. Backend verifies the token against Bitrix24's **central OAuth server** (`oauth.bitrix.info/rest/`) — never the client-supplied domain. Three parallel calls:
+   - `user.current` — validates the token, gets user ID
+   - `user.admin` — checks admin status
+   - `app.info` — gets `MEMBER_ID` from a trusted source
+4. Backend cross-checks:
+   - Central-server-returned `MEMBER_ID` must match client-supplied `member_id` → `B24_MEMBER_MISMATCH`
+   - Stored `domain_url` must match client-supplied domain (on `getToken`) → `B24_DOMAIN_MISMATCH`
+5. Issues a 1-hour JWT containing: `{ bitrix24AccountId, userId, memberId, isAdmin }`
+
+**Why `oauth.bitrix.info`:** Verifying tokens against the client-supplied domain would allow an attacker to stand up a fake Bitrix24 server and get our backend to trust it. The central OAuth server is a hardcoded, Bitrix24-controlled endpoint — no client-supplied value in the verification path.
+
+**Key files:**
+- `src/services/b24-auth.ts` — `verifyB24Token(authId)` — central server verification
+- `src/routes/auth.ts` — `POST /getToken` — token issuance with cross-checks
+- `src/routes/install.ts` — `POST /install` — installation with verification
+- `src/middleware/auth.ts` — JWT validation on protected routes
+- `src/types/express.d.ts` — `req.user` type augmentation
+
+### Multi-Tenancy
+
+The app is multi-tenant by Bitrix24 portal (`member_id`). Each portal is an isolated tenant.
+
+**Portal isolation:** Every authenticated request carries `memberId` in the JWT. All database queries for tenant-scoped data **must** filter by `memberId` to prevent cross-portal data leaks. The `bitrix24account` table links users to portals via the `member_id` column.
+
+**JWT payload (`req.user`):**
+```ts
+{
+  bitrix24AccountId: string;  // Internal DB account ID
+  userId: number;             // Bitrix24 user ID
+  memberId: string;           // Portal identifier (tenant key)
+  isAdmin: boolean;           // Portal admin status
+}
+```
+
+**Rules for new routes:**
+- Always use `req.user.memberId` to scope queries to the current portal
+- Use `req.user.isAdmin` to gate admin-only operations
+- Never trust client-supplied `member_id` — always use the value from the JWT
 
 ### Middleware
 
-- **`auth.ts`** — JWT Bearer token validation, attaches `req.user`
+- **`auth.ts`** — JWT Bearer token validation, validates payload structure, attaches typed `req.user`
 - **`contract.ts`** — `contractMiddleware({ params, query, body, response: { data } })` for Zod validation + response envelope. `ContractError` for typed error responses. `contractErrorHandler` as Express error handler.
 
 ### Routes
 
 ```
-POST /getToken     — JWT token issuance
-POST /install      — B24 OAuth installation
+POST /getToken     — B24 token verification + JWT issuance
+POST /install      — B24 OAuth installation + account creation
 GET  /health       — Health check (auth required)
 ```
 
@@ -97,6 +153,8 @@ import { authMiddleware } from "../middleware/auth";
 export const myRouter = Router();
 
 myRouter.get("/my-endpoint", authMiddleware, (req, res) => {
+  const { memberId, userId, isAdmin } = req.user!;
+  // Always scope queries by memberId for tenant isolation
   res.json({ hello: "world" });
 });
 ```

@@ -138,9 +138,7 @@ router.get(
 
 ## Authentication & Security
 
-### JWT tokens
-
-Every endpoint except `/api/install` and `/api/getToken` requires:
+Every endpoint except `/api/install` and `/api/getToken` requires a JWT:
 
 ```
 Authorization: Bearer <token>
@@ -148,9 +146,25 @@ Authorization: Bearer <token>
 
 ### Authentication flow
 
-1. **App installation** (`/api/install`) — receives Bitrix24 auth data, stores installation info. No JWT required.
-2. **Issue token** (`/api/getToken`) — accepts Bitrix24 auth payload, returns a JWT (TTL = 1 hour). No JWT required.
-3. **Protected endpoints** — validate JWT via auth middleware, extract user info from the token payload.
+1. **Installation** (`POST /api/install`) — frontend sends Bitrix24 OAuth credentials (`AUTH_ID`, `member_id`, `DOMAIN`). Backend verifies the token against Bitrix24's central OAuth server (`oauth.bitrix.info`), cross-checks `member_id`, and creates account + installation records.
+2. **Token issuance** (`POST /api/getToken`) — called on every app open. Backend re-verifies the token with `oauth.bitrix.info`, confirms the portal is installed, checks domain consistency against stored records, and issues a 1-hour JWT.
+3. **Protected endpoints** — JWT validated by auth middleware. `req.user` contains `{ bitrix24AccountId, userId, memberId, isAdmin }`.
+
+### Trust model
+
+Tokens are verified against `oauth.bitrix.info/rest/` (hardcoded) — **never** the client-supplied domain. Three parallel calls validate the token:
+
+- `user.current` — confirms token is real, returns user ID
+- `user.admin` — checks portal admin status
+- `app.info` — returns `MEMBER_ID` from a trusted source
+
+Additional cross-checks:
+- Central-server `MEMBER_ID` must match client-supplied `member_id`
+- Stored `domain_url` must match client-supplied domain (on `getToken`)
+
+### Multi-tenancy
+
+The app is multi-tenant by Bitrix24 portal. Each portal is identified by `member_id` (carried in the JWT as `memberId`). All database queries for tenant-scoped data **must** filter by `memberId` to prevent cross-portal data leaks.
 
 ## Frontend
 
