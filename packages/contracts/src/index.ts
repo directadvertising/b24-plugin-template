@@ -1,21 +1,15 @@
-import {
-  type ContractRouteKeys,
-  createContract,
-  type InferContractBody,
-  type InferContractData,
-  type InferContractParams,
-  type InferContractQuery,
+// Multi-contract package: each feature/domain owns a contract file and exports
+// a named contract (e.g. `BitrixContract` from `./bitrix-contract`). Add new
+// contracts as `./<name>-contract.ts` and re-export them here.
+
+// Generic inference helpers, re-exported so consumers derive types from any
+// contract without depending on `contracts` directly:
+//   InferContractBody<typeof BitrixContract, "getToken">
+export type {
+  ContractRouteKeys,
+  InferContractBody,
+  InferContractData,
+  InferContractParams,
+  InferContractQuery,
 } from "contracts";
-
-/**
- *
- */
-export const $ = createContract({});
-
-export namespace $ {
-  export type Route = ContractRouteKeys<typeof $>;
-  export type Body<K extends Route> = InferContractBody<typeof $, K>;
-  export type Query<K extends Route> = InferContractQuery<typeof $, K>;
-  export type Params<K extends Route> = InferContractParams<typeof $, K>;
-  export type Data<K extends Route> = InferContractData<typeof $, K>;
-}
+export * from "./bitrix-contract";

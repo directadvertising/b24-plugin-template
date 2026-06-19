@@ -2,9 +2,9 @@ import "./env";
 
 import cors from "cors";
 import express from "express";
-import { db, runMigrations } from "./db";
+import * as routers from "./features";
+import { db } from "./lib/db";
 import { contractErrorHandler } from "./middleware/contract";
-import * as routers from "./routes";
 
 const app = express();
 
@@ -23,8 +23,6 @@ for (const [name, router] of Object.entries(routers)) {
 }
 
 app.use(contractErrorHandler);
-
-await runMigrations();
 
 const port = process.env.PORT ?? 3000;
 

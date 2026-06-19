@@ -7,12 +7,14 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "start:tunnel": "cloudflared tunnel --url http://localhost:5173"
+    "typecheck": "tsc -b --noEmit",
+    "lint": "biome check --fix ."
   },
   "dependencies": {
     "@bitrix24/b24jssdk": "0.5",
-    "@common/b24ui-react": "0.0.1",
+    "@common/bitrix": "workspace:*",
     "@tailwindcss/vite": "4.1.16",
+    "@tanstack/react-query": "5.101.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "i18next": "25.8.14",
@@ -22,9 +24,9 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-i18next": "16.5.4",
-    "react-router": "7.13.1",
     "tailwind-merge": "3.5.0",
-    "tailwindcss": "4.1.16"
+    "tailwindcss": "4.1.16",
+    "wouter": "3.10.0"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

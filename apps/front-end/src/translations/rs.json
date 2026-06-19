@@ -1,0 +1,16 @@
+{
+  "common": {
+    "loading": "Učitavanje...",
+    "unknown": "nepoznato"
+  },
+  "install": {
+    "title": "Instaliranje aplikacije",
+    "failedInit": "Inicijalizacija B24Frame-a nije uspela",
+    "steps": {
+      "init": "Inicijalizacija...",
+      "serverSide": "Konfigurisanje servera...",
+      "finish": "Gotovo!",
+      "fallback": "..."
+    }
+  }
+}

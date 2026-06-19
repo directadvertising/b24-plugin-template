@@ -10,22 +10,14 @@ Forge is a CLI tool for managing local development projects with Docker Compose,
 
 ## Architecture Overview
 
-Forge manages a **system layer** (shared Traefik proxy + Docker network) and per-project **environments** (Docker Compose services with domain routing).
+Forge does not start or stop containers — users run `docker compose up`/`down` themselves. Forge's job is the system layer (shared Traefik proxy + Docker network) and per-project domain routing.
 
-```
-User projects                        System infrastructure
-┌──────────────┐                    ┌──────────────────────┐
-│ .forgerc.json │─ forge project start ▶│ docker compose up    │
-│ compose.yaml  │                    │ forge-network connect│
-└──────────────┘                    └──────────────────────┘
-       │                                      │
-       │ forge project bind                   ▼
-       ▼                            ┌──────────────────────┐
-┌──────────────┐                    │ Traefik (ports 80/443)│
-│ /etc/hosts   │                    │ Dynamic routing       │
-│ traefik/*.yml│                    │ Optional: cloudflared │
-└──────────────┘                    └──────────────────────┘
-```
+Typical lifecycle:
+
+1. Once per project: `forge project bind` — writes Traefik dynamic config + `/etc/hosts` entries.
+2. Every dev session: `docker compose up` (run by the user, however they want).
+3. After containers are running: `forge project attach` (alias `link`) — connects the project's containers to `forge-network` so Traefik can reach them.
+4. Tear down: `docker compose down` (or just leave them running; nothing forge-side needs cleanup).
 
 ## Directory Layout
 
@@ -56,24 +48,16 @@ Located in the project root. Auto-discovered by walking up from cwd, stopping at
   "code": "my-project",
   "environment": {
     "compose_file": "docker-compose.yml",
-    "hooks": {
-      "pre_start": ["echo starting"],
-      "post_start": [],
-      "pre_stop": [],
-      "post_stop": [],
-      "pre_destroy": [],
-      "post_destroy": []
-    },
     "alias": [
       {
-        "service": "myproject-frontend",
+        "container": "myproject-frontend",
         "port": 5173,
         "alias": null,
         "https": true,
         "cloudflare": true
       },
       {
-        "service": "myproject-backend",
+        "container": "myproject-backend",
         "port": 3000,
         "alias": "backend",
         "path": "/api",
@@ -95,14 +79,13 @@ Located in the project root. Auto-discovered by walking up from cwd, stopping at
 | `code` | yes | string | URL-safe identifier: `^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$` |
 | `description` | no | string | Project description |
 | `environment.compose_file` | no | string | Relative path to compose file. Empty = auto-detect (`compose.yaml` > `compose.yml` > `docker-compose.yml` > `docker-compose.yaml`) |
-| `environment.hooks.*` | no | string[] | Shell commands run via `sh -c` before/after compose operations |
 | `environment.alias` | no | array | Array of alias entries (legacy map format auto-migrated) |
 
 ### Alias Entry Fields
 
 | Field | Required | Type | Default | Description |
 |-------|----------|------|---------|-------------|
-| `service` | yes | string | — | Docker Compose service or container name. Pattern: `^[a-zA-Z0-9][a-zA-Z0-9_-]*$` |
+| `container` | yes | string | — | Docker container name (`container_name` or service name from compose file). Deprecated `service` key still accepted. Pattern: `^[a-zA-Z0-9][a-zA-Z0-9_-]*$` |
 | `port` | yes | int (1-65535) | — | Container port to route to |
 | `alias` | no | string or null | null | `null` = `<code>.test`, `"sub"` = `sub.<code>.test` |
 | `path` | no | string | — | Frontend path prefix for routing (e.g., `/api`). Must start with `/`, no trailing `/`. Pattern: `^/[a-zA-Z0-9/_-]+$` |
@@ -157,12 +140,10 @@ These compose: a request to `myapp.test/api/users` with `path: "/api"`, `forward
 |---------|-------------|
 | `forge project init` | Create `.forgerc.json` (interactive or with `-t`/`-c` flags) |
 | `forge project init -t "Name" -c "code"` | Non-interactive init. Optional: `-d`, `--register`, `--force` |
-| `forge project start` | `docker compose up -d` + connect to forge-network + show status |
-| `forge project stop [all\|<name>]` | Stop project. No arg = cwd, `all` = all registered, `<name>` = by project name |
-| `forge project destroy` | `docker compose down` |
+| `forge project attach` (alias `link`) | Connect the project's running containers to `forge-network`. Run after `docker compose up`. Idempotent. |
 | `forge project info` | Show project details, service states, and alias overview |
 
-`forge start`, `forge stop`, `forge destroy` still work as hidden top-level aliases.
+Forge does not wrap `docker compose up`/`down`/`stop`. Users run those commands directly.
 
 ### Project Management
 
@@ -202,33 +183,20 @@ All alias commands support interactive mode (run without arguments). `alias add`
 
 ## Common AI Tasks
 
-### Adding a service alias to `.forgerc.json`
+### Adding a container alias to `.forgerc.json`
 
-Edit the `environment.alias` array. Each entry needs a `service` field matching `^[a-zA-Z0-9][a-zA-Z0-9_-]*$`.
+Edit the `environment.alias` array. Each entry needs a `container` field matching `^[a-zA-Z0-9][a-zA-Z0-9_-]*$`. The deprecated `service` key is still accepted but triggers a warning.
 
 ```json
 "alias": [
-  { "service": "myapp-web", "port": 3000, "alias": null },
-  { "service": "myapp-api", "port": 8080, "alias": "api", "path": "/v1", "target_path": "/test" }
+  { "container": "myapp-web", "port": 3000, "alias": null },
+  { "container": "myapp-api", "port": 8080, "alias": "api", "path": "/v1", "target_path": "/test" }
 ]
 ```
 
-The legacy map format (keys as service names) is still read but automatically migrated to array format on write.
+The legacy map format (keys as service names) and deprecated `service` key are still read but automatically migrated on write.
 
 If editing `.forgerc.json` directly (not via `forge project alias add`), the user must run `forge project bind` manually to apply routing. Agents should not run bind commands.
-
-### Adding lifecycle hooks
-
-```json
-"hooks": {
-  "pre_start": ["npm install", "npm run build"],
-  "post_start": ["echo 'Services are up'"],
-  "pre_stop": [],
-  "post_stop": []
-}
-```
-
-Hooks are shell commands run sequentially via `sh -c` in the project directory.
 
 ### Setting a custom compose file path
 
@@ -266,4 +234,4 @@ Path is relative to the directory containing `.forgerc.json`. If omitted, forge 
 - **`$schema` auto-set:** Every `WriteForgeRC` call adds the `$schema` field automatically. Don't remove it.
 - **Registry is just paths:** `projects.json` is an array of absolute directory paths. Project metadata lives only in each `.forgerc.json`.
 - **Hosts markers:** `/etc/hosts` entries are tagged with `# forge:<project-code>` for clean add/remove.
-- **Legacy format:** `environment.commands` (with `start`/`stop`/`destroy` arrays) is deprecated. Forge still runs them but prints a warning. New configs should use `hooks` + native compose.
+- **No container lifecycle:** Forge does not run `docker compose up`/`down`. Users own that. Forge attaches running containers to `forge-network` via `forge project attach`.

@@ -6,12 +6,12 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 ## What You Get
 
 - **Express 5 backend** with contract-based routing and validation
-- **React 19 frontend** with Bitrix24 JS SDK and `@common/b24ui-react`
+- **React 19 frontend** with Bitrix24 JS SDK and `@common/bitrix`
 - **Shared API contracts** (Zod schemas, type-safe routes) in `packages/contracts/`
-- **PostgreSQL 17** with Kysely query builder and migrations
+- **PostgreSQL 17** with Kysely query builder and dbmate SQL migrations
 - **RabbitMQ** for async workloads
 - **MinIO** S3-compatible object storage
-- **Modular instructions** for AI agents in `instructions/`
+- **AI agent docs** in `docs/`, with path-scoped rules in `.claude/rules/`
 
 ## Repository Layout
 
@@ -19,18 +19,15 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 ├── apps/
 │   ├── back-end/              # Express 5 API (port 3000)
 │   └── front-end/             # React 19 + Vite SPA
-│       ├── src/                # pages, components, hooks, atoms
+│       ├── src/features/       # feature-first: pages, components, lib, hooks
 │       └── vite.config.ts
 ├── packages/
 │   ├── contracts/             # @common/contracts — Zod schemas, routes, types
-│   └── b24ui-react/           # @common/b24ui-react — B24 React hooks, atoms, provider
-├── instructions/              # AI agent knowledge base
-│   ├── knowledge.md           # start here
-│   ├── node/                  # Express backend guides
-│   ├── front/                 # React/Vite guides
-│   ├── bitrix24/              # platform specifics
-│   └── queues/                # RabbitMQ recipes
-├── docker-compose.yml         # Dev services: PostgreSQL, RabbitMQ, MinIO
+│   └── bitrix/                    # @common/bitrix — B24 React hooks, atoms, provider
+├── migrations/                # dbmate SQL migrations (applied by the dbmate service)
+├── docs/                      # AI agent docs (back-end/, front-end/, bitrix24/)
+├── .claude/rules/             # path-scoped rules auto-loaded by area
+├── docker-compose.yml         # Dev services: PostgreSQL, RabbitMQ, MinIO, dbmate
 └── pnpm-workspace.yaml
 ```
 
@@ -39,9 +36,9 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 | Layer          | Technology                                              |
 |----------------|---------------------------------------------------------|
 | **Backend**    | Express 5, TypeScript, Kysely, `contractMiddleware`     |
-| **Frontend**   | React 19, Vite 8, Tailwind CSS 4, Jotai, `@common/b24ui-react` |
+| **Frontend**   | React 19, Vite 8, Tailwind CSS 4, Jotai, `@common/bitrix` |
 | **Contracts**  | `@common/contracts` — Zod schemas shared across apps    |
-| **Database**   | PostgreSQL 17 (Alpine), Kysely query builder            |
+| **Database**   | PostgreSQL 17 (Alpine), Kysely query builder, dbmate migrations |
 | **Queue**      | RabbitMQ 3.13                                           |
 | **Storage**    | MinIO (S3-compatible)                                   |
 | **Monorepo**   | pnpm workspaces                                         |
@@ -55,8 +52,22 @@ Registers two default widgets: a CRM deal tab and a custom CRM field widget.
 | front-end  | 5173          | `b24-template.local/`              | Vite dev server                                |
 | back-end   | 3000          | `b24-template.local/api`           | Express API server                             |
 | minio      | 9000          | `b24-template.local/files`         | S3-compatible storage                          |
-| PostgreSQL | 5432          | (internal only)                    | Database (schema managed by Kysely migrations) |
+| PostgreSQL | 5432          | (internal only)                    | Database (schema managed by dbmate migrations) |
+| dbmate     | —             | (internal, one-shot)               | Applies `migrations/` on startup, then exits   |
 | RabbitMQ   | 5672          | (internal only)                    | Message queue                                  |
+
+## Database Migrations
+
+Schema is managed by [**dbmate**](https://github.com/amacneil/dbmate) — plain SQL files in `migrations/`. On `docker compose up`, the one-shot `dbmate` service runs `dbmate up` (after Postgres is healthy) and the `back-end` waits for it to finish, so the API always starts against an up-to-date schema.
+
+```bash
+docker compose run --rm dbmate new add_widgets   # scaffold migrations/<ts>_add_widgets.sql
+docker compose run --rm dbmate up                # apply pending migrations
+docker compose run --rm dbmate status            # list applied / pending
+docker compose run --rm dbmate down              # roll back the most recent migration
+```
+
+Each file has `-- migrate:up` and `-- migrate:down` sections (raw SQL). After changing the schema, mirror it by hand in the `Database` interface in `apps/back-end/src/db.ts` — that interface is the type source of truth for Kysely (no codegen). Applied versions are tracked in the `schema_migrations` table.
 
 ## Quick Start
 
@@ -170,47 +181,50 @@ The app is multi-tenant by Bitrix24 portal. Each portal is identified by `member
 
 ### Key directories
 
-- `apps/front-end/src/pages/` — page components (`.tsx` files)
-- `apps/front-end/src/main.tsx` — app entry point with `B24Provider` and React Router
+The front-end is organised **feature-first** — code is grouped by feature under
+`features/<name>/`. See [`docs/front-end/feature-structure.md`](docs/front-end/feature-structure.md).
+
+- `apps/front-end/src/features/<name>/` — per-feature `pages/`, `components/`, `lib/`, `hooks/`, `query-keys.ts`, `index.ts`
+- `apps/front-end/src/components/ui/` — shared shadcn/ui primitives; `src/lib/` — shared utilities (`query-client.ts`)
+- `apps/front-end/src/router.tsx` — wouter routes; `src/main.tsx` / `src/app.tsx` — entry + providers
 - `apps/front-end/vite.config.ts` — Vite config with Tailwind CSS and API proxy
 
 ### Conventions
 
-- Wrap the app in `<B24Provider>` (from `@common/b24ui-react`) for B24 frame init, JWT, and Jotai atoms
-- Routing via React Router (`react-router`)
-- Hooks from `@common/b24ui-react`: `useB24Init`, `useApiClient`, `useB24Frame`
-- State management via Jotai atoms (exported from `@common/b24ui-react`)
+- Wrap the app in `<B24Provider>` (from `@common/bitrix`) and `<QueryClientProvider>` for B24 frame init, JWT, Jotai atoms, and TanStack Query
+- Routing via `wouter`; pages live in feature folders and mount in `router.tsx`
+- Hooks from `@common/bitrix`: `useB24Init`, `useApiClient`, `useB24Frame`
+- Server state via TanStack Query (feature `hooks/` + `query-keys.ts`); shared client state via Jotai atoms
 - Tailwind CSS 4 via `@tailwindcss/vite` plugin
 
 ## Widgets, Events, Robots
 
 If your feature involves widgets, events, or robots, review these docs first:
 
-- **Widgets:** [API reference](https://github.com/bitrix-tools/b24-rest-docs/tree/main/api-reference/widgets) | [Widget guide](./instructions/bitrix24/widget.md)
+- **Widgets:** [API reference](https://github.com/bitrix-tools/b24-rest-docs/tree/main/api-reference/widgets) | [Widget guide](./docs/bitrix24/widget.md)
 - **Events:** [API reference](https://github.com/bitrix-tools/b24-rest-docs/tree/main/api-reference/events) — register via `event.bind` during installation
-- **Robots:** [CRM robot guide](./instructions/bitrix24/crm-robot.md) — register via `bizproc.robot.add`
+- **Robots:** [CRM robot guide](./docs/bitrix24/crm-robot.md) — register via `bizproc.robot.add`
 
 ## Queues & RabbitMQ
 
 - Broker: AMQP `5672`, management UI `15672`
-- Guide: `instructions/queues/node.md`
+- Guide: [`docs/back-end/queues.md`](./docs/back-end/queues.md)
 
-## Instructions System (for AI agents)
+## AI agent docs
 
-Entry point: `instructions/knowledge.md`
+Two layers, both checked into the repo:
+
+- **`.claude/rules/`** — short, path-scoped rules auto-loaded when you touch matching files (`backend.md`, `frontend.md`, `routing.md`, `contracts.md`, `migrations.md`).
+- **`docs/`** — deeper how-tos the rules link into:
 
 ```
-instructions/
-├── knowledge.md              # central hub — start here
-├── node/knowledge.md         # Express backend patterns
-├── node/code-review.md       # backend code review standards
-├── front/knowledge.md        # frontend (React/Vite) guide
-├── bitrix24/crm-robot.md     # CRM robot instructions
-├── bitrix24/widget.md        # widget instructions
-├── queues/server.md          # queue server setup
-├── queues/node.md            # Node.js + amqplib recipes
-└── queues/prompt.md          # AI prompt for queue tasks
+docs/
+├── back-end/      # calling-apis, queues
+├── front-end/     # feature-structure, bitrix-package, calling-apis, installation
+└── bitrix24/      # crm-robot, widget
 ```
+
+For Bitrix24 specifics, the `bitrix` skill (`.claude/skills/bitrix/`) is the deep reference.
 
 **Reading workflow:** `knowledge.md` -> `node/knowledge.md` or `front/knowledge.md` -> specialized docs as needed.
 

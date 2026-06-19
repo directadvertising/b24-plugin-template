@@ -18,4 +18,4 @@ onlyBuiltDependencies:
   - msw
   - tsx
   - unrs-resolver
-  - b24ui-react
+  - bitrix

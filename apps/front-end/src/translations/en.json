@@ -1,0 +1,16 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "unknown": "unknown"
+  },
+  "install": {
+    "title": "Installing Application",
+    "failedInit": "Failed to initialize B24Frame",
+    "steps": {
+      "init": "Initializing...",
+      "serverSide": "Configuring server...",
+      "finish": "Done!",
+      "fallback": "..."
+    }
+  }
+}

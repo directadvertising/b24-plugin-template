@@ -4,9 +4,11 @@
   "private": true,
   "main": "src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check --fix ."
   },
   "dependencies": {
-    "contracts": "github:ivancerovina/contracts"
+    "contracts": "github:ivancerovina/contracts",
+    "zod": "4.3.6"
   }
 }

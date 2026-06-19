@@ -20,9 +20,28 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      dbmate:
+        condition: service_completed_successfully
     networks:
       - internal
       - forge-network
+    restart: no
+
+  dbmate:
+    image: amacneil/dbmate:2.33.0
+    container_name: b24-dbmate
+    command: ["--wait", "up"]
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-appuser}:${DB_PASSWORD:-apppass}@postgres:5432/${DB_NAME:-appdb}?sslmode=disable
+      DBMATE_MIGRATIONS_DIR: /migrations
+      DBMATE_NO_DUMP_SCHEMA: "true"
+    volumes:
+      - ./migrations:/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
     restart: no
 
   front-end:
@@ -63,52 +82,31 @@ services:
       - internal
     restart: no
 
-  rabbitmq:
-    image: rabbitmq:3.13-management-alpine
-    container_name: b24-rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-queue_user}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-queue_password}
-    expose:
-      - "5672"
-      - "15672"
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - internal
-    restart: no
-
-  minio:
-    image: minio/minio:latest
-    container_name: b24-minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
-    expose:
-      - "9000"
-      - "9001"
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - internal
-      - forge-network
-    restart: no
+  # minio:
+  #   image: minio/minio:latest
+  #   container_name: b24-minio
+  #   command: server /data --console-address ":9001"
+  #   environment:
+  #     MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+  #     MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+  #   expose:
+  #     - "9000"
+  #     - "9001"
+  #   volumes:
+  #     - minio_data:/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - internal
+  #     - forge-network
+  #   restart: no
 
 volumes:
   pgdata:
-  rabbitmq_data:
-  minio_data:
+  # minio_data:
 
 networks:
   internal:
