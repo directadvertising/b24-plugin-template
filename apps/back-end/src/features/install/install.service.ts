@@ -8,7 +8,10 @@ import { verifyB24Token } from "../../services/b24-auth";
 export async function installApplication(
   body: InstallBody,
 ): Promise<{ accountId: string }> {
-  const { userId, isAdmin, memberId } = await verifyB24Token(body.AUTH_ID);
+  const { userId, isAdmin, memberId } = await verifyB24Token(
+    body.AUTH_ID,
+    body.DOMAIN,
+  );
 
   // Cross-check: central server member_id must match client-supplied member_id
   if (memberId !== body.member_id) {

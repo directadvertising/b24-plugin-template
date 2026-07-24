@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: apps/back-end/Dockerfile
       target: dev
-    container_name: b24-back-end
+    container_name: b24-pt-back-end
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -16,7 +16,10 @@ services:
     expose:
       - "3000"
     volumes:
-      - .:/app
+      # Source only — node_modules lives in the image (see Dockerfile), so it is
+      # never shadowed and `docker compose up --build` reinstalls deps cleanly.
+      - ./apps/back-end/src:/app/apps/back-end/src
+      - ./packages/contracts/src:/app/packages/contracts/src
     depends_on:
       postgres:
         condition: service_healthy
@@ -29,7 +32,7 @@ services:
 
   dbmate:
     image: amacneil/dbmate:2.33.0
-    container_name: b24-dbmate
+    container_name: b24-pt-dbmate
     command: ["--wait", "up"]
     environment:
       DATABASE_URL: postgres://${DB_USER:-appuser}:${DB_PASSWORD:-apppass}@postgres:5432/${DB_NAME:-appdb}?sslmode=disable
@@ -49,14 +52,20 @@ services:
       context: .
       dockerfile: apps/front-end/Dockerfile
       target: dev
-    container_name: b24-front-end
+    container_name: b24-pt-front-end
     environment:
       API_URL: ${API_URL:-http://back-end:3000}
       VITE_APP_URL: ${VITE_APP_URL:-https://b24-cashflow.directadv.gay}
     expose:
       - "5173"
     volumes:
-      - .:/app
+      # Source only — node_modules lives in the image (see Dockerfile), so it is
+      # never shadowed and `docker compose up --build` reinstalls deps cleanly.
+      - ./apps/front-end/src:/app/apps/front-end/src
+      - ./apps/front-end/index.html:/app/apps/front-end/index.html
+      - ./apps/front-end/public:/app/apps/front-end/public
+      - ./packages/bitrix/src:/app/packages/bitrix/src
+      - ./packages/contracts/src:/app/packages/contracts/src
     depends_on:
       - back-end
     networks:
@@ -66,7 +75,7 @@ services:
 
   postgres:
     image: postgres:17-alpine
-    container_name: b24-postgres
+    container_name: b24-pt-postgres
     environment:
       POSTGRES_DB: ${DB_NAME:-appdb}
       POSTGRES_USER: ${DB_USER:-appuser}
@@ -84,7 +93,7 @@ services:
 
   # minio:
   #   image: minio/minio:latest
-  #   container_name: b24-minio
+  #   container_name: b24-pt-minio
   #   command: server /data --console-address ":9001"
   #   environment:
   #     MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}

@@ -16,7 +16,10 @@ export async function issueSessionToken(body: GetTokenBody): Promise<string> {
     );
   }
 
-  const { userId, isAdmin, memberId } = await verifyB24Token(body.AUTH_ID);
+  const { userId, isAdmin, memberId } = await verifyB24Token(
+    body.AUTH_ID,
+    body.DOMAIN,
+  );
 
   // Cross-check: central server member_id must match client-supplied member_id
   if (memberId !== body.member_id) {

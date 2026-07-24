@@ -44,9 +44,9 @@ debugging a Bitrix24 feature, **invoke the `bitrix` skill** for the full pattern
 
 ## Auth & security
 
-Tokens are verified against Bitrix24's **central OAuth server** (`oauth.bitrix.info/rest/`), never the client-supplied domain — a fake portal could otherwise be trusted.
+Portal identity (`member_id`) comes from Bitrix24's **central OAuth server** (`app.info` at `oauth.bitrix.info/rest/`) — a fake portal could otherwise self-certify. User identity (`user.current`, `user.admin`) is **portal-scoped** and must be fetched from the **portal instance**; the central server does not serve those methods. The instance is addressed by the domain **stored** for that `member_id`, falling back to the client-supplied `DOMAIN` only on first install.
 
-Flow: frontend sends B24 OAuth creds → `POST /install` (first time) or `POST /getToken` → backend verifies via `user.current`, `user.admin`, `app.info` → cross-checks central `MEMBER_ID` vs client `member_id` (`B24_MEMBER_MISMATCH`) and stored `domain` vs client domain (`B24_DOMAIN_MISMATCH`) → issues 1-hour JWT `{ bitrix24AccountId, userId, memberId, isAdmin }`.
+Flow: frontend sends B24 OAuth creds → `POST /install` (first time) or `POST /getToken` → backend resolves `MEMBER_ID` centrally, then verifies the user against the portal → cross-checks central `MEMBER_ID` vs client `member_id` (`B24_MEMBER_MISMATCH`) and stored `domain` vs client domain (`B24_DOMAIN_MISMATCH`) → issues 1-hour JWT `{ bitrix24AccountId, userId, memberId, isAdmin }`.
 
 Key files: `services/b24-auth.ts` (`verifyB24Token`), `routes/auth.ts`, `routes/install.ts`, `middleware/auth.ts`, `types/express.d.ts`.
 
